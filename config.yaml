@@ -92,8 +92,13 @@ opentelemetry:
 #     insecure: false
 #     samplingRate: 0.01
 
-# Optional: opt-in NetBackup 11.2 metric collectors (all default to disabled)
+# Optional: opt-in metric collectors (all default to disabled)
 collectors:
+  # Tape storage metrics: drive status, media inventory, pool capacity.
+  # Requires NetBackup 10.5 (API v12.0+). On API v3.0 a warning is logged
+  # at startup and these endpoints are not contacted.
+  tape:    { enabled: true }
+  # The following collectors require NetBackup 11.2 (API v14.0).
   alerts:  { enabled: false }
   malware: { enabled: false }
   catalog: { enabled: false }
