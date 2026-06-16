@@ -121,6 +121,7 @@ type Config struct {
 	} `yaml:"opentelemetry"`
 
 	Collectors struct {
+		Tape    CollectorToggle `yaml:"tape"`
 		Alerts  CollectorToggle `yaml:"alerts"`
 		Malware CollectorToggle `yaml:"malware"`
 		Catalog CollectorToggle `yaml:"catalog"`

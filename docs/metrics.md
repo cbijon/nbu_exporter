@@ -71,7 +71,33 @@ See [Configuration](getting-started/configuration.md) for the `nbuservers` multi
 `sum(nbu_disk_bytes{name=X})` continues to equal total capacity (free + used).
 
 !!! note
-    Tape storage units are excluded from metrics collection.
+    Disk storage units only. Tape storage unit capacity is not available via the REST API;
+    use the `nbu_tape_media_count` metric (API v12.0+) for tape inventory instead.
+
+## Tape Storage Metrics (opt-in, requires API v12.0+)
+
+These metrics require NetBackup 10.5 (API v12.0+) and are disabled by default.
+Enable with `collectors.tape.enabled: true` in `config.yaml`. On API v3.0 (NBU 10.0–10.4)
+a warning is logged at startup and the endpoints are not contacted.
+
+| Metric | Labels | Description |
+|--------|--------|-------------|
+| `nbu_tape_drives_count` | `drive_type`, `robot_type`, `status` | Number of tape drives grouped by drive type (DT_HCART/DT_DLT/…), robot type (TLD/ACS/…), and status (DRIVE_STATUS_UP/DOWN/…) |
+| `nbu_tape_media_count` | `pool`, `media_type`, `robot_type` | Number of tape media volumes grouped by volume pool, media type, and robot type |
+| `nbu_tape_pool_partially_full` | `pool_name`, `pool_type` | Number of partially full media volumes in each tape volume pool |
+
+!!! note
+    Tape **job** information (DUPLICATION, VAULT actions) is already available via the
+    existing `nbu_client_jobs_count` and `nbu_client_last_job_success_seconds` metrics,
+    which work on all API versions including v3.0. The tape storage metrics above are
+    for drive health and media inventory monitoring.
+
+### Enabling the tape collector
+
+```yaml
+collectors:
+  tape: { enabled: true }   # requires API v12.0+ (NBU 10.5+)
+```
 
 ## NetBackup 11.2 opt-in collectors
 

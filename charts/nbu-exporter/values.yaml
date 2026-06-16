@@ -95,10 +95,11 @@ config: |
     insecure: true
     samplingRate: 0.1
   collectors:
-    alerts:  { enabled: false }
-    malware: { enabled: false }
-    catalog: { enabled: false }
-    slo:     { enabled: false }
+    tape:    { enabled: false }  # requires NBU 10.5 (API v12.0+); safe no-op on v3.0
+    alerts:  { enabled: false }  # requires NBU 11.2 (API v14.0)
+    malware: { enabled: false }  # requires NBU 11.2 (API v14.0)
+    catalog: { enabled: false }  # requires NBU 11.2 (API v14.0)
+    slo:     { enabled: false }  # requires NBU 11.2 (API v14.0)
   # Multi-site example: replace the nbuserver block above with nbuservers list.
   # Each entry runs as an independent collector and attaches the site label to all metrics.
   # nbuservers:
