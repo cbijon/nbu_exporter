@@ -25,7 +25,7 @@ Panel titles are bilingual (French / English). Every dashboard uses the `${datas
 variable (defaulting to the provisioned **Prometheus**), so it keeps working if re-pointed at another
 Prometheus.
 
-## The four dashboards
+## The dashboards
 
 | Dashboard | File / UID | Focus | Extra variables |
 |-----------|------------|-------|-----------------|
@@ -34,10 +34,14 @@ Prometheus.
 | **Storage** | `nbu-storage.json` / `nbu-storage` | Capacity utilization, used-vs-total trend, per-unit table, max concurrent jobs, max fragment size | `$storage_unit` |
 | **Data Protection** | `nbu-dataprotection.json` / `nbu-dataprotection` | NetBackup 11.2 collectors: alerts by severity/category, malware scanned vs infected and scan status, catalog malware/anomaly posture, configured SLOs | — |
 | **Lifecycle** | `nbu-lifecycle.json` / `nbu-lifecycle` | Per-client backup lifecycle compliance: last BACKUP / DUPLICATION / IMPORT success age, per-client table, failure rate, SLA gauges (requires `nbu_client_*` metrics) | `$client_filter` |
+| **Tape & Disk Pools** | `nbu-tape.json` / `nbu-tape` | Tape drive status (UP/DOWN by type/robot), media inventory by pool and type, volume pool partial-full counts, disk pool volume state (UP/DOWN/UNKNOWN) — requires `collectors.tape.enabled: true` and NBU 10.5+ | — |
 
 The **Data Protection** dashboard's panels stay empty until the optional 11.2 collectors are enabled
 in `config.yaml` (`collectors.{alerts,malware,catalog,slo}.enabled: true`) and the appliance returns
 data, so it is safe to leave in place on older NetBackup versions.
+
+The **Tape & Disk Pools** dashboard's panels stay empty on NBU 10.3/10.4 (API v3.0) because the
+underlying storage endpoints do not exist in that API version. Enable once upgraded to NBU 10.5+.
 
 The previous single overview and the legacy "NBU Statistics" dashboard have been retired; their views
 now live in the Overview, Jobs, and Storage dashboards above.

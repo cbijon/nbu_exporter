@@ -53,8 +53,12 @@ The exporter automatically detects the highest supported API version (14.0 → 1
 | `nbu_jobs_bytes` | Total bytes transferred by jobs |
 | `nbu_status_count` | Job count by action and status |
 | `nbu_disk_bytes` | Storage unit capacity (free/used) |
-| `nbu_client_jobs_count` | Job count per client, policy, action, and status |
+| `nbu_client_jobs_count` | Job count per client, action, and status |
 | `nbu_client_last_job_success_seconds` | Unix timestamp of last successful job per client, policy, and action |
+| `nbu_tape_drives_count` | Tape drive count by type, robot, and status (NBU 10.5+, opt-in) |
+| `nbu_tape_media_count` | Tape media volume count by pool, type, and robot (NBU 10.5+, opt-in) |
+| `nbu_tape_pool_partially_full` | Partially full media per volume pool (NBU 10.5+, opt-in) |
+| `nbu_disk_pool_volume_count` | Disk volume count per pool by state UP/DOWN/UNKNOWN (NBU 10.5+, opt-in) |
 | `nbu_api_version` | Active NetBackup API version |
 
 See the [Metrics Reference](metrics.md) for full details.
