@@ -13,25 +13,28 @@ const (
 	tapeDrivesPath     = "/storage/drives"
 	tapeMediaPath      = "/storage/tape-media"
 	tapeVolumePoolPath = "/storage/tape-volume-pools"
+	diskPoolsPath      = "/storage/disk-pools"
 )
 
-// tapeCollector is an opt-in sub-collector that emits tape infrastructure metrics
-// from three endpoints (all require NetBackup 10.5 / API v12.0+):
+// tapeCollector is an opt-in sub-collector that emits tape and disk-pool
+// infrastructure metrics from four endpoints (all require NBU 10.5 / API v12.0+):
 //
-//   - GET /storage/drives          → nbu_tape_drives_count
-//   - GET /storage/tape-media      → nbu_tape_media_count
+//   - GET /storage/drives            → nbu_tape_drives_count
+//   - GET /storage/tape-media        → nbu_tape_media_count
 //   - GET /storage/tape-volume-pools → nbu_tape_pool_partially_full
+//   - GET /storage/disk-pools        → nbu_disk_pool_volume_count
 //
-// The three endpoints are fetched independently with full pagination. A failure
-// on one endpoint is logged and skipped so that the other two can still emit.
+// Each endpoint is fetched independently with full pagination. A failure on one
+// endpoint is logged and skipped so the others can still emit.
 // The collector is registered only when the detected API version is >= v12.0
 // (gate applied in buildSubCollectors).
 type tapeCollector struct {
-	client          NetBackupClient
-	cfg             models.Config
-	descDrives      *prometheus.Desc
-	descMedia       *prometheus.Desc
-	descPoolPartial *prometheus.Desc
+	client               NetBackupClient
+	cfg                  models.Config
+	descDrives           *prometheus.Desc
+	descMedia            *prometheus.Desc
+	descPoolPartial      *prometheus.Desc
+	descDiskPoolVolumes  *prometheus.Desc
 }
 
 func newTapeCollector(client NetBackupClient, cfg models.Config, constLabels prometheus.Labels) *tapeCollector {
@@ -53,14 +56,19 @@ func newTapeCollector(client NetBackupClient, cfg models.Config, constLabels pro
 			"Number of partially full tape media volumes in each volume pool",
 			[]string{"pool_name", "pool_type"}, constLabels,
 		),
+		descDiskPoolVolumes: prometheus.NewDesc(
+			"nbu_disk_pool_volume_count",
+			"Number of disk volumes per disk pool, grouped by pool name, storage category, and volume state (UP/DOWN/UNKNOWN)",
+			[]string{"pool_name", "storage_category", "state"}, constLabels,
+		),
 	}
 }
 
 func (t *tapeCollector) Name() string { return "tape" }
 
-// Collect fetches all three tape endpoints concurrently and emits their metrics.
-// Each endpoint is handled independently: a failure on one does not prevent the
-// others from being collected (graceful per-endpoint degradation).
+// Collect fetches all four tape/disk-pool endpoints independently and emits their
+// metrics. A failure on one endpoint is logged and skipped so the others can
+// still emit (graceful per-endpoint degradation).
 func (t *tapeCollector) Collect(ctx context.Context, ch chan<- prometheus.Metric) error {
 	var firstErr error
 
@@ -76,6 +84,12 @@ func (t *tapeCollector) Collect(ctx context.Context, ch chan<- prometheus.Metric
 	}
 	if err := t.collectPools(ctx, ch); err != nil {
 		log.WithError(err).Warn("tape: volume-pool fetch failed; skipping nbu_tape_pool_partially_full")
+		if firstErr == nil {
+			firstErr = err
+		}
+	}
+	if err := t.collectDiskPools(ctx, ch); err != nil {
+		log.WithError(err).Warn("tape: disk-pool fetch failed; skipping nbu_disk_pool_volume_count")
 		if firstErr == nil {
 			firstErr = err
 		}
@@ -186,6 +200,48 @@ func (t *tapeCollector) collectPools(ctx context.Context, ch chan<- prometheus.M
 			break
 		}
 		offset = resp.Meta.Pagination.Next
+	}
+	return nil
+}
+
+// collectDiskPools paginates GET /storage/disk-pools and emits
+// nbu_disk_pool_volume_count grouped by (pool_name, storage_category, state).
+// Each disk pool's volumes are counted by their state (UP/DOWN/UNKNOWN).
+func (t *tapeCollector) collectDiskPools(ctx context.Context, ch chan<- prometheus.Metric) error {
+	type poolVolumeKey struct{ poolName, storageCategory, state string }
+	counts := map[poolVolumeKey]float64{}
+
+	offset := 0
+	for {
+		url := t.cfg.BuildURL(diskPoolsPath, map[string]string{
+			QueryParamLimit:  pageLimit,
+			QueryParamOffset: strconv.Itoa(offset),
+		})
+		var resp models.DiskPools
+		if err := t.client.FetchData(ctx, url, &resp); err != nil {
+			return err
+		}
+		for _, pool := range resp.Data {
+			for _, vol := range pool.Attributes.DiskVolumes {
+				k := poolVolumeKey{
+					poolName:        pool.Attributes.Name,
+					storageCategory: pool.Attributes.StorageCategory,
+					state:           vol.State,
+				}
+				counts[k]++
+			}
+		}
+		if resp.Meta.Pagination.Next == 0 || len(resp.Data) == 0 {
+			break
+		}
+		offset = resp.Meta.Pagination.Next
+	}
+
+	for k, v := range counts {
+		ch <- prometheus.MustNewConstMetric(
+			t.descDiskPoolVolumes, prometheus.GaugeValue, v,
+			k.poolName, k.storageCategory, k.state,
+		)
 	}
 	return nil
 }

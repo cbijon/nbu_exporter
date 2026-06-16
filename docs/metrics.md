@@ -31,7 +31,7 @@ replication jobs independently.
 
 | Metric | Labels | Description |
 |--------|--------|-------------|
-| `nbu_client_jobs_count` | `client`, `policy`, `action`, `status` | Number of jobs per client, policy, action type, and exit status |
+| `nbu_client_jobs_count` | `client`, `action`, `status` | Number of jobs per client, action type, and exit status |
 | `nbu_client_last_job_success_seconds` | `client`, `policy`, `action` | Unix timestamp of the last successful (status=0) job completion per client, policy, and action |
 
 `nbu_client_last_job_success_seconds` is persistent across scrape windows: once a client
@@ -85,6 +85,7 @@ a warning is logged at startup and the endpoints are not contacted.
 | `nbu_tape_drives_count` | `drive_type`, `robot_type`, `status` | Number of tape drives grouped by drive type (DT_HCART/DT_DLT/…), robot type (TLD/ACS/…), and status (DRIVE_STATUS_UP/DOWN/…) |
 | `nbu_tape_media_count` | `pool`, `media_type`, `robot_type` | Number of tape media volumes grouped by volume pool, media type, and robot type |
 | `nbu_tape_pool_partially_full` | `pool_name`, `pool_type` | Number of partially full media volumes in each tape volume pool |
+| `nbu_disk_pool_volume_count` | `pool_name`, `storage_category`, `state` | Number of disk volumes per disk pool grouped by state (UP/DOWN/UNKNOWN); `storage_category` is ADVANCED_DISK/MSDP/CLOUD/CLOUD_CATALYST/OPEN_STORAGE |
 
 !!! note
     Tape **job** information (DUPLICATION, VAULT actions) is already available via the
@@ -201,6 +202,7 @@ Four focused dashboards live in the `grafana/` directory:
 | `grafana/nbu-storage.json` | `nbu-storage` | Capacity utilization, storage units, limits |
 | `grafana/nbu-dataprotection.json` | `nbu-dataprotection` | Alerts, malware scans, catalog posture, SLOs (11.2) |
 | `grafana/nbu-lifecycle.json` | `nbu-lifecycle` | Per-client backup lifecycle: last success age, compliance gauges, failure rate (BACKUP / DUPLICATION / IMPORT) |
+| `grafana/nbu-tape.json` | `nbu-tape` | Tape drives status, media inventory by pool/type, volume pool health, disk pool volume state (API v12.0+) |
 
 The dashboards cross-link to each other via the shared `netbackup` tag (a tag-based
 dashboard-links dropdown) and use the `${datasource}` template variable so they work

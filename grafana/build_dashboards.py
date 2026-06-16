@@ -7,7 +7,7 @@ Each dashboard is validated against the known nbu_* metric set before writing.
 import json
 import sys
 
-from grafana.gen import overview, jobs, storage, dataprotection
+from grafana.gen import overview, jobs, storage, dataprotection, tape
 from grafana.gen.validate import check_dashboard
 
 OUTPUTS = [
@@ -15,6 +15,7 @@ OUTPUTS = [
     ("grafana/nbu-jobs.json", jobs.build),
     ("grafana/nbu-storage.json", storage.build),
     ("grafana/nbu-dataprotection.json", dataprotection.build),
+    ("grafana/nbu-tape.json", tape.build),
 ]
 
 

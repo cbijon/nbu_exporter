@@ -78,6 +78,7 @@ services:
       - ./grafana/nbu-storage.json:/var/lib/grafana/dashboards/nbu-storage.json:ro
       - ./grafana/nbu-dataprotection.json:/var/lib/grafana/dashboards/nbu-dataprotection.json:ro
       - ./grafana/nbu-lifecycle.json:/var/lib/grafana/dashboards/nbu-lifecycle.json:ro
+      - ./grafana/nbu-tape.json:/var/lib/grafana/dashboards/nbu-tape.json:ro
       # Companion dashboard (Grafana 1860) — requires a node_exporter scraped alongside.
       - ./grafana/node-exporter-full.json:/var/lib/grafana/dashboards/node-exporter-full.json:ro
       - grafana-storage:/var/lib/grafana

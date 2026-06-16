@@ -68,3 +68,35 @@ type TapeMedia struct {
 		} `json:"pagination"`
 	} `json:"meta"`
 }
+
+// DiskVolume is one volume entry nested inside a DiskPool (API v12.0+).
+type DiskVolume struct {
+	Name           string `json:"name"`
+	ID             string `json:"id"`
+	State          string `json:"state"` // UP / DOWN / UNKNOWN
+	RawSizeBytes   int64  `json:"rawSizeBytes"`
+	FreeSizeBytes  int64  `json:"freeSizeBytes"`
+}
+
+// DiskPool is one entry from GET /storage/disk-pools (API v12.0+).
+type DiskPool struct {
+	ID         string `json:"id"`
+	Type       string `json:"type"`
+	Attributes struct {
+		Name            string       `json:"name"`
+		SType           string       `json:"sType"`
+		StorageCategory string       `json:"storageCategory"` // ADVANCED_DISK / CLOUD / CLOUD_CATALYST / MSDP / OPEN_STORAGE
+		DiskPoolState   string       `json:"diskPoolState"`   // UP / DOWN / TRANSIENT
+		DiskVolumes     []DiskVolume `json:"diskVolumes"`
+	} `json:"attributes"`
+}
+
+// DiskPools is the paginated response from GET /storage/disk-pools.
+type DiskPools struct {
+	Data []DiskPool `json:"data"`
+	Meta struct {
+		Pagination struct {
+			Next int `json:"next"`
+		} `json:"pagination"`
+	} `json:"meta"`
+}

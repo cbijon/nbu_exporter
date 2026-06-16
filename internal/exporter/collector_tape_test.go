@@ -33,7 +33,9 @@ func (f *fakeTapeClient) FetchData(_ context.Context, url string, target interfa
 			return json.Unmarshal(b, target)
 		}
 	}
-	return fmt.Errorf("no response configured for URL %s", url)
+	// Return empty JSON object for any unconfigured path so tests that only set up
+	// a subset of endpoints don't fail on the others.
+	return json.Unmarshal([]byte(`{}`), target)
 }
 
 func (f *fakeTapeClient) DetectAPIVersion(_ context.Context) (string, error) {
@@ -278,6 +280,64 @@ func TestTapeCollectorGracefulDegradation(t *testing.T) {
 	assert.True(t, poolFound, "pool metrics must be emitted even when drives fail")
 }
 
+// diskPoolResponse builds a single-page DiskPools API response.
+func diskPoolResponse(pools []models.DiskPool) models.DiskPools {
+	return models.DiskPools{Data: pools}
+}
+
+// makeDiskPool is a helper to construct a DiskPool with the given volumes.
+func makeDiskPool(name, category string, volumes []models.DiskVolume) models.DiskPool {
+	dp := models.DiskPool{ID: name, Type: "diskPool"}
+	dp.Attributes.Name = name
+	dp.Attributes.StorageCategory = category
+	dp.Attributes.DiskPoolState = "UP"
+	dp.Attributes.DiskVolumes = volumes
+	return dp
+}
+
+// makeDiskVolume is a helper to construct a DiskVolume with a given state.
+func makeDiskVolume(name, state string) models.DiskVolume {
+	return models.DiskVolume{Name: name, ID: name, State: state}
+}
+
+// TestTapeCollectorDiskPools verifies that nbu_disk_pool_volume_count is emitted
+// and aggregated correctly by (pool_name, storage_category, state).
+func TestTapeCollectorDiskPools(t *testing.T) {
+	client := &fakeTapeClient{
+		responses: map[string]interface{}{
+			tapeDrivesPath:     driveResponse(nil),
+			tapeMediaPath:      mediaResponse(nil),
+			tapeVolumePoolPath: poolResponse(nil),
+			diskPoolsPath: diskPoolResponse([]models.DiskPool{
+				makeDiskPool("msdp-pool", "MSDP", []models.DiskVolume{
+					makeDiskVolume("vol-1", "UP"),
+					makeDiskVolume("vol-2", "UP"),
+					makeDiskVolume("vol-3", "DOWN"),
+				}),
+				makeDiskPool("adv-pool", "ADVANCED_DISK", []models.DiskVolume{
+					makeDiskVolume("vol-a", "UP"),
+				}),
+			}),
+		},
+	}
+
+	tc := newTapeCollector(client, minimalTapeConfig(), nil)
+	ch := make(chan prometheus.Metric, 64)
+	err := tc.Collect(context.Background(), ch)
+	close(ch)
+	require.NoError(t, err)
+
+	metrics := collectToSlice(ch)
+	diskPoolMetrics := 0
+	for _, m := range metrics {
+		if m.Desc() == tc.descDiskPoolVolumes {
+			diskPoolMetrics++
+		}
+	}
+	// msdp-pool: 2 UP + 1 DOWN → 2 series; adv-pool: 1 UP → 1 series = 3 total
+	assert.Equal(t, 3, diskPoolMetrics, "expected 3 disk-pool volume metric series")
+}
+
 // gracefulTapeClient simulates a partial failure: drives endpoint fails,
 // media and pool endpoints succeed.
 type gracefulTapeClient struct {
@@ -295,6 +355,9 @@ func (g *gracefulTapeClient) FetchData(_ context.Context, url string, target int
 		return json.Unmarshal(b, target)
 	case strings.Contains(url, tapeVolumePoolPath):
 		b, _ := json.Marshal(g.poolResp)
+		return json.Unmarshal(b, target)
+	case strings.Contains(url, diskPoolsPath):
+		b, _ := json.Marshal(models.DiskPools{})
 		return json.Unmarshal(b, target)
 	}
 	return fmt.Errorf("no response for %s", url)

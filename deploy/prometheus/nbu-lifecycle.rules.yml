@@ -2,7 +2,6 @@
 # NetBackup lifecycle alerting rules
 # Complement to nbu.rules.yml — focuses on per-client compliance, tape, and multi-site.
 # Requires: nbu_client_jobs_count and nbu_client_last_job_success_seconds metrics
-# (available in nbu_exporter >= next release after v3.0.0).
 
 groups:
   - name: nbu_client_compliance
@@ -73,58 +72,72 @@ groups:
             failed in the current scraping window.
 
   - name: nbu_tape
+    # Tape alerts require nbu_tape_drives_count and nbu_tape_media_count metrics.
+    # These are emitted by the tape collector (collectors.tape.enabled: true in config)
+    # and are only available on NetBackup 10.5+ (API v12.0+).
     rules:
       # Tape drive has been in DOWN state for more than 30 minutes.
-      # Requires nbu_tape_drives_count metric (planned — see Feature 2).
-      # Uncomment once the tape metrics collector is implemented.
-      #
-      # - alert: NbuTapeDriveDown
-      #   expr: nbu_tape_drives_count{state="DOWN"} > 0
-      #   for: 30m
-      #   labels:
-      #     severity: warning
-      #     team: backup
-      #   annotations:
-      #     summary: "Tape drive DOWN on {{ $labels.site }}"
-      #     description: >
-      #       {{ $value }} tape drive(s) are in DOWN state on site {{ $labels.site }}.
-      #       Investigate robot connectivity or drive hardware.
+      - alert: NbuTapeDriveDown
+        expr: nbu_tape_drives_count{status="DRIVE_STATUS_DOWN"} > 0
+        for: 30m
+        labels:
+          severity: warning
+          team: backup
+        annotations:
+          summary: "Tape drive DOWN on {{ $labels.site }}"
+          description: >
+            {{ $value }} {{ $labels.drive_type }} drive(s) are in DOWN state
+            (robot {{ $labels.robot_type }}) on site {{ $labels.site }}.
+            Investigate robot connectivity or drive hardware.
 
-      # Tape volume pool has fewer than N scratch volumes.
-      # Requires nbu_tape_media_count metric (planned — see Feature 2).
-      #
-      # - alert: NbuTapePoolScratchLow
-      #   expr: nbu_tape_media_count{state="SCRATCH"} < 5
-      #   for: 15m
-      #   labels:
-      #     severity: warning
-      #     team: backup
-      #   annotations:
-      #     summary: "Low scratch tape count in pool {{ $labels.pool }} on {{ $labels.site }}"
-      #     description: >
-      #       Only {{ $value }} scratch volumes remain in pool {{ $labels.pool }} on
-      #       {{ $labels.site }}. Order or reassign tapes before the pool is exhausted.
+      # Tape scratch pool is running low on available volumes.
+      # Adjust the pool label value and threshold to match your NBU configuration.
+      # The pool name is the NBU volume pool name — typically "Scratch" or "NetBackup".
+      - alert: NbuTapePoolScratchLow
+        expr: sum by (pool, site) (nbu_tape_media_count{pool="Scratch"}) < 5
+        for: 15m
+        labels:
+          severity: warning
+          team: backup
+        annotations:
+          summary: "Low scratch tape count in pool {{ $labels.pool }} on {{ $labels.site }}"
+          description: >
+            Only {{ $value }} volumes remain in scratch pool {{ $labels.pool }} on
+            {{ $labels.site }}. Order or reassign tapes before the pool is exhausted.
+
+      # A disk volume within a disk pool has been in DOWN or UNKNOWN state.
+      # Requires nbu_disk_pool_volume_count (API v12.0+, NBU 10.5+).
+      - alert: NbuDiskPoolVolumeDegraded
+        expr: nbu_disk_pool_volume_count{state!="UP"} > 0
+        for: 10m
+        labels:
+          severity: warning
+          team: backup
+        annotations:
+          summary: "Disk pool volume degraded in {{ $labels.pool_name }} on {{ $labels.site }}"
+          description: >
+            {{ $value }} volume(s) in pool {{ $labels.pool_name }}
+            ({{ $labels.storage_category }}) are in state {{ $labels.state }} on
+            {{ $labels.site }}. Check storage server connectivity.
 
   - name: nbu_multisite
+    # Multi-site rules require an nbuservers[] configuration with distinct site labels.
     rules:
       # Inter-site backup volume divergence: if one site backs up significantly
       # fewer bytes than the other, it may indicate a connectivity or config issue.
-      # Requires multi-site setup where metrics have a "site" label (Feature 1).
-      # Uncomment once multi-master support is implemented.
-      #
-      # - alert: NbuInterSiteDivergence
-      #   expr: |
-      #     (
-      #       sum by (site) (nbu_jobs_bytes{action="BACKUP"})
-      #       / on() group_left()
-      #       avg(sum by (site) (nbu_jobs_bytes{action="BACKUP"}))
-      #     ) < 0.3
-      #   for: 1h
-      #   labels:
-      #     severity: warning
-      #     team: backup
-      #   annotations:
-      #     summary: "Backup volume on site {{ $labels.site }} is unusually low"
-      #     description: >
-      #       Site {{ $labels.site }} backed up only {{ $value | humanize1024 }}B,
-      #       less than 30% of the average across sites. Check connectivity and job scheduling.
+      - alert: NbuInterSiteDivergence
+        expr: |
+          (
+            sum by (site) (nbu_jobs_bytes{action="BACKUP"})
+            / on() group_left()
+            avg(sum by (site) (nbu_jobs_bytes{action="BACKUP"}))
+          ) < 0.3
+        for: 1h
+        labels:
+          severity: warning
+          team: backup
+        annotations:
+          summary: "Backup volume on site {{ $labels.site }} is unusually low"
+          description: >
+            Site {{ $labels.site }} backed up only {{ $value | humanize1024 }}B,
+            less than 30% of the average across sites. Check connectivity and job scheduling.
