@@ -1,0 +1,803 @@
+{
+  "uid": "nbu-lifecycle",
+  "title": "NBU - Cycle de vie des sauvegardes / Backup Lifecycle",
+  "tags": ["nbu", "backup", "lifecycle"],
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "graphTooltip": 1,
+  "time": {"from": "now-24h", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "refresh": "5m",
+  "links": [
+    {
+      "title": "NBU - Vue d'ensemble",
+      "url": "/d/nbu-overview",
+      "type": "link",
+      "icon": "external link",
+      "targetBlank": false
+    },
+    {
+      "title": "NBU - Jobs",
+      "url": "/d/nbu-jobs",
+      "type": "link",
+      "icon": "external link",
+      "targetBlank": false
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "label": "Datasource",
+        "current": {},
+        "hide": 0,
+        "refresh": 1
+      },
+      {
+        "name": "client_filter",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "query": "label_values(nbu_client_last_job_success_seconds, client)",
+        "label": "Client",
+        "current": {},
+        "hide": 0,
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "sort": 1
+      }
+    ]
+  },
+  "annotations": {"list": []},
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Vue d'ensemble / Overview",
+      "gridPos": {"x": 0, "y": 0, "w": 24, "h": 1},
+      "collapsed": false
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Clients sauvegardés (24h) / Clients backed up (24h)",
+      "description": "Nombre de clients ayant eu une sauvegarde primaire réussie dans les dernières 24h.",
+      "gridPos": {"x": 0, "y": 1, "w": 6, "h": 4},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "count(nbu_client_last_job_success_seconds{action=\"BACKUP\", client=~\"$client_filter\"} > (time() - 86400)) or on() vector(0)",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 1},
+              {"color": "green", "value": 5}
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Clients sans backup récent / Clients missing recent backup",
+      "description": "Clients dont le dernier backup primaire date de plus de 25h (seuil de conformité).",
+      "gridPos": {"x": 6, "y": 1, "w": 6, "h": 4},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "count(time() - nbu_client_last_job_success_seconds{action=\"BACKUP\", client=~\"$client_filter\"} > 90000) or on() vector(0)",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 1},
+              {"color": "red", "value": 3}
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Copies bande réussies / Tape copies succeeded",
+      "description": "Nombre de jobs de duplication (copie vers bande) réussis dans la fenêtre de scraping.",
+      "gridPos": {"x": 12, "y": 1, "w": 6, "h": 4},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(nbu_client_jobs_count{action=\"DUPLICATION\", status=\"0\", client=~\"$client_filter\"}) or on() vector(0)",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "text", "value": null}
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Réplications reçues / Replications received (Master 2)",
+      "description": "Nombre de jobs IMPORT (réplication inter-site) réussis — visible sur Master 2 uniquement.",
+      "gridPos": {"x": 18, "y": 1, "w": 6, "h": 4},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(nbu_client_jobs_count{action=\"IMPORT\", status=\"0\", client=~\"$client_filter\"}) or on() vector(0)",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "text", "value": null}
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "type": "row",
+      "title": "Taux de réussite par phase / Success Rate per Phase",
+      "gridPos": {"x": 0, "y": 5, "w": 24, "h": 1},
+      "collapsed": false
+    },
+    {
+      "id": 7,
+      "type": "gauge",
+      "title": "Sauvegarde primaire / Primary Backup",
+      "description": "Taux de succès des jobs BACKUP dans la fenêtre de scraping en cours.",
+      "gridPos": {"x": 0, "y": 6, "w": 8, "h": 6},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(nbu_client_jobs_count{action=\"BACKUP\", status=\"0\", client=~\"$client_filter\"}) / clamp_min(sum(nbu_client_jobs_count{action=\"BACKUP\", client=~\"$client_filter\"}), 1) * 100",
+          "instant": true,
+          "refId": "A",
+          "legendFormat": "Backup"
+        }
+      ],
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "orientation": "auto",
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "text": {}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 70},
+              {"color": "green", "value": 90}
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 8,
+      "type": "gauge",
+      "title": "Copie bande / Tape Duplication",
+      "description": "Taux de succès des jobs DUPLICATION (copie vers bande) dans la fenêtre de scraping en cours.",
+      "gridPos": {"x": 8, "y": 6, "w": 8, "h": 6},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(nbu_client_jobs_count{action=\"DUPLICATION\", status=\"0\", client=~\"$client_filter\"}) / clamp_min(sum(nbu_client_jobs_count{action=\"DUPLICATION\", client=~\"$client_filter\"}), 1) * 100",
+          "instant": true,
+          "refId": "A",
+          "legendFormat": "Duplication"
+        }
+      ],
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "orientation": "auto",
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "text": {}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 70},
+              {"color": "green", "value": 90}
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 9,
+      "type": "gauge",
+      "title": "Réplication inter-site / Inter-site Replication (IMPORT)",
+      "description": "Taux de succès des jobs IMPORT sur Master 2 (réplication inter-site via Auto Image Replication).",
+      "gridPos": {"x": 16, "y": 6, "w": 8, "h": 6},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(nbu_client_jobs_count{action=\"IMPORT\", status=\"0\", client=~\"$client_filter\"}) / clamp_min(sum(nbu_client_jobs_count{action=\"IMPORT\", client=~\"$client_filter\"}), 1) * 100",
+          "instant": true,
+          "refId": "A",
+          "legendFormat": "Import"
+        }
+      ],
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "orientation": "auto",
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "text": {}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 70},
+              {"color": "green", "value": 90}
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 10,
+      "type": "row",
+      "title": "Cycle de vie complet par client / Full Lifecycle per Client",
+      "gridPos": {"x": 0, "y": 12, "w": 24, "h": 1},
+      "collapsed": false
+    },
+    {
+      "id": 11,
+      "type": "table",
+      "title": "Ancienneté de la dernière réussite par client et phase / Age of last success per client and phase",
+      "description": "Montre l'ancienneté (en secondes) de la dernière réussite pour chaque couple client/politique et chaque phase du cycle de vie (BACKUP=sauvegarde, DUPLICATION=copie bande, IMPORT=réplication). Couleur rouge = dépassement du SLA (>25h pour BACKUP).",
+      "gridPos": {"x": 0, "y": 13, "w": 24, "h": 12},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sort_desc(time() - nbu_client_last_job_success_seconds{client=~\"$client_filter\"})",
+          "instant": true,
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true
+            },
+            "indexByName": {
+              "client": 0,
+              "policy": 1,
+              "action": 2,
+              "Value": 3
+            },
+            "renameByName": {
+              "client": "Client",
+              "policy": "Politique / Policy",
+              "action": "Phase",
+              "Value": "Ancienneté / Age"
+            }
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "sortBy": [{"displayName": "Ancienneté / Age", "desc": true}],
+        "footer": {"show": false},
+        "frameIndex": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "displayMode": "color-text",
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "Ancienneté / Age"},
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 86400},
+                    {"color": "red", "value": 90000}
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {"mode": "thresholds"}
+              }
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "Phase"},
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {"type": "value", "options": {"BACKUP": {"text": "🖴 Sauvegarde primaire", "color": "blue", "index": 0}}},
+                  {"type": "value", "options": {"DUPLICATION": {"text": "📼 Copie bande", "color": "purple", "index": 1}}},
+                  {"type": "value", "options": {"IMPORT": {"text": "🔄 Réplication (Master 2)", "color": "orange", "index": 2}}}
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 12,
+      "type": "row",
+      "title": "Activité dans le temps / Activity Over Time",
+      "gridPos": {"x": 0, "y": 25, "w": 24, "h": 1},
+      "collapsed": false
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Jobs réussis par phase / Successful jobs by phase",
+      "description": "Nombre de jobs réussis (status=0) par type dans la fenêtre de scraping. Montre le rythme d'activité de chaque phase du cycle de vie.",
+      "gridPos": {"x": 0, "y": 26, "w": 24, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum by (action) (nbu_client_jobs_count{status=\"0\", action=~\"BACKUP|DUPLICATION|IMPORT|RESTORE\", client=~\"$client_filter\"})",
+          "refId": "A",
+          "legendFormat": "{{action}}"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "none"},
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["lastNotNull", "max", "sum"]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "lineWidth": 1,
+            "barAlignment": 0,
+            "spanNulls": false,
+            "showPoints": "never"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "BACKUP"},
+            "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "blue"}}]
+          },
+          {
+            "matcher": {"id": "byName", "options": "DUPLICATION"},
+            "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "purple"}}]
+          },
+          {
+            "matcher": {"id": "byName", "options": "IMPORT"},
+            "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "orange"}}]
+          },
+          {
+            "matcher": {"id": "byName", "options": "RESTORE"},
+            "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "green"}}]
+          }
+        ]
+      }
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Volume transféré par phase / Data transferred by phase",
+      "description": "Octets transférés par type de job dans la fenêtre de scraping.",
+      "gridPos": {"x": 0, "y": 34, "w": 24, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum by (action) (nbu_jobs_bytes{action=~\"BACKUP|DUPLICATION|IMPORT\"})",
+          "refId": "A",
+          "legendFormat": "{{action}}"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "none"},
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["lastNotNull", "max"]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "decbytes",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineWidth": 2,
+            "spanNulls": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "BACKUP"},
+            "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "blue"}}]
+          },
+          {
+            "matcher": {"id": "byName", "options": "DUPLICATION"},
+            "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "purple"}}]
+          },
+          {
+            "matcher": {"id": "byName", "options": "IMPORT"},
+            "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "orange"}}]
+          }
+        ]
+      }
+    },
+    {
+      "id": 15,
+      "type": "row",
+      "title": "Clients en alerte / Clients in Alert",
+      "gridPos": {"x": 0, "y": 42, "w": 24, "h": 1},
+      "collapsed": false
+    },
+    {
+      "id": 16,
+      "type": "table",
+      "title": "Clients dont le backup dépasse 25h / Clients with backup older than 25h",
+      "description": "Liste des clients en violation du SLA de sauvegarde (dernier backup > 25h). Triés par ancienneté décroissante (les plus critiques en premier).",
+      "gridPos": {"x": 0, "y": 43, "w": 12, "h": 10},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sort_desc(time() - nbu_client_last_job_success_seconds{action=\"BACKUP\", client=~\"$client_filter\"}) > 90000",
+          "instant": true,
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "action": true
+            },
+            "indexByName": {
+              "client": 0,
+              "policy": 1,
+              "Value": 2
+            },
+            "renameByName": {
+              "client": "Client",
+              "policy": "Politique / Policy",
+              "Value": "Retard / Overdue"
+            }
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "sortBy": [{"displayName": "Retard / Overdue", "desc": true}],
+        "footer": {"show": true, "reducer": ["count"], "countRows": true}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "displayMode": "color-text",
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "Retard / Overdue"},
+            "properties": [
+              {"id": "unit", "value": "s"},
+              {"id": "custom.displayMode", "value": "color-background"},
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"color": "yellow", "value": null},
+                    {"color": "orange", "value": 172800},
+                    {"color": "red", "value": 259200}
+                  ]
+                }
+              },
+              {"id": "color", "value": {"mode": "thresholds"}}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 17,
+      "type": "table",
+      "title": "Clients sans copie bande (>26h) / Clients missing tape copy (>26h)",
+      "description": "Clients dont la dernière copie bande (DUPLICATION) date de plus de 26h.",
+      "gridPos": {"x": 12, "y": 43, "w": 12, "h": 10},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sort_desc(time() - nbu_client_last_job_success_seconds{action=\"DUPLICATION\", client=~\"$client_filter\"}) > 93600",
+          "instant": true,
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "action": true
+            },
+            "indexByName": {
+              "client": 0,
+              "policy": 1,
+              "Value": 2
+            },
+            "renameByName": {
+              "client": "Client",
+              "policy": "Politique / Policy",
+              "Value": "Retard copie bande / Tape copy overdue"
+            }
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "sortBy": [{"displayName": "Retard copie bande / Tape copy overdue", "desc": true}],
+        "footer": {"show": true, "reducer": ["count"], "countRows": true}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "displayMode": "color-text",
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "Retard copie bande / Tape copy overdue"},
+            "properties": [
+              {"id": "unit", "value": "s"},
+              {"id": "custom.displayMode", "value": "color-background"},
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"color": "yellow", "value": null},
+                    {"color": "orange", "value": 172800},
+                    {"color": "red", "value": 259200}
+                  ]
+                }
+              },
+              {"id": "color", "value": {"mode": "thresholds"}}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 18,
+      "type": "row",
+      "title": "Détail par client / Per-client Detail",
+      "gridPos": {"x": 0, "y": 53, "w": 24, "h": 1},
+      "collapsed": false
+    },
+    {
+      "id": 19,
+      "type": "timeseries",
+      "title": "Jobs par client / Jobs per client (top 10 by activity)",
+      "description": "Nombre de jobs réussis (status=0) par client sur la période sélectionnée. Permet d'identifier les clients les plus actifs ou inactifs.",
+      "gridPos": {"x": 0, "y": 54, "w": 24, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "topk(10, sum by (client) (nbu_client_jobs_count{action=\"BACKUP\", status=\"0\", client=~\"$client_filter\"}))",
+          "refId": "A",
+          "legendFormat": "{{client}}"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "desc"},
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": ["lastNotNull", "max"],
+          "sortBy": "Last *",
+          "sortDesc": true
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 40,
+            "lineWidth": 1,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 20,
+      "type": "timeseries",
+      "title": "Durée moyenne des jobs par client / Avg job duration per client",
+      "description": "Utilise le percentile P95 de la durée des jobs de sauvegarde par politique (proxy client). Aide à détecter les dérives de performance.",
+      "gridPos": {"x": 0, "y": 62, "w": 24, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "histogram_quantile(0.95, sum by (action, policy_type, le) (rate(nbu_job_duration_seconds_bucket{action=\"BACKUP\"}[$__rate_interval])))",
+          "refId": "A",
+          "legendFormat": "P95 BACKUP {{policy_type}}"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "desc"},
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["lastNotNull", "max"]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    }
+  ]
+}
