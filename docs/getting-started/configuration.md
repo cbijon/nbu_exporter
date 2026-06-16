@@ -99,20 +99,39 @@ nbuserver:
 The `NBU1_*` variables are passed into the container by `docker-compose.yml` from the `.env`
 file automatically.
 
-**Multi-site** — use the `nbuservers:` list (see [Multiple Sites](#multiple-sites) above). Each
-entry's `host` and `apiKey` support the same `${VAR}` interpolation:
+**Multi-server** — use the `nbuservers` list to monitor several NetBackup master servers from
+a single exporter process. Each entry becomes an independent Prometheus collector and attaches
+a `site` constant label to all its metrics, preventing label collisions in Prometheus:
 
 ```yaml
 nbuservers:
-  - site: "paris"
-    host: "${NBU_PARIS_HOST}"
-    apiKey: "${NBU_PARIS_KEY}"
-    # ...
-  - site: "lyon"
-    host: "${NBU_LYON_HOST}"
-    apiKey: "${NBU_LYON_KEY}"
-    # ...
+  - site: "site-a"
+    scheme: "https"
+    uri: "/netbackup"
+    domain: "site-a.example.com"
+    domainType: "NT"
+    host: "${NBU_A_HOST}"
+    port: "1556"
+    apiKey: "${NBU_A_KEY}"
+    contentType: "application/vnd.netbackup+json; version=3.0"
+    insecureSkipVerify: false
+
+  - site: "site-b"
+    scheme: "https"
+    uri: "/netbackup"
+    domain: "site-b.example.com"
+    domainType: "NT"
+    host: "${NBU_B_HOST}"
+    port: "1556"
+    apiKey: "${NBU_B_KEY}"
+    contentType: "application/vnd.netbackup+json; version=3.0"
+    insecureSkipVerify: false
 ```
+
+The `site` field is required (and must be unique) when more than one entry is present.
+When only one entry is used, `site` is optional.
+
+See `docs/config-examples/config-netbackup-multi-site.yaml` for a complete ready-to-use example.
 
 The `.env` / `NBU1_*` naming is a single-server convenience; there is no limit on variable names.
 
@@ -129,21 +148,23 @@ The `.env` / `NBU1_*` naming is a single-server convenience; there is no limit o
 
 ## NBU Server Section
 
-For multiple servers, use a `nbuservers:` list instead of this single block — each entry takes
-the same fields plus a required, unique `site` (see [Multiple Sites](#multiple-sites)).
+Used for a single server (`nbuserver:` key) or as entries in the `nbuservers:` list for multi-site.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
+| `site` | string | Yes* | Site identifier attached as a constant label on all metrics. Required when using `nbuservers` with more than one entry. |
 | `scheme` | string | Yes | Protocol (http/https) |
 | `uri` | string | Yes | API base path |
 | `domain` | string | Yes | NetBackup domain |
 | `domainType` | string | Yes | Domain type (NT, vx, etc.) |
 | `host` | string | Yes | NetBackup master server hostname |
 | `port` | string | Yes | API port (typically 1556) |
-| `apiVersion` | string | No | API version (14.0, 13.0, 12.0, or 10.0). Auto-detects if omitted. |
+| `apiVersion` | string | No | API version (14.0, 13.0, 12.0, or 3.0). Auto-detects if omitted. |
 | `apiKey` | string | Yes | NetBackup API key |
 | `contentType` | string | Yes | API content type header |
 | `insecureSkipVerify` | bool | No | Skip TLS certificate verification |
+
+*Required (and unique) only when `nbuservers` contains more than one entry.
 
 ## OpenTelemetry Section (Optional)
 

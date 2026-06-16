@@ -33,6 +33,7 @@ Prometheus.
 | **Jobs** | `nbu-jobs.json` / `nbu-jobs` | Backup outcomes, job states, jobs by policy, backup volume, queued jobs, duration p50/p95, files, deduplication | `$policy_type` |
 | **Storage** | `nbu-storage.json` / `nbu-storage` | Capacity utilization, used-vs-total trend, per-unit table, max concurrent jobs, max fragment size | `$storage_unit` |
 | **Data Protection** | `nbu-dataprotection.json` / `nbu-dataprotection` | NetBackup 11.2 collectors: alerts by severity/category, malware scanned vs infected and scan status, catalog malware/anomaly posture, configured SLOs | — |
+| **Lifecycle** | `nbu-lifecycle.json` / `nbu-lifecycle` | Per-client backup lifecycle compliance: last BACKUP / DUPLICATION / IMPORT success age, per-client table, failure rate, SLA gauges (requires `nbu_client_*` metrics) | `$client_filter` |
 
 The **Data Protection** dashboard's panels stay empty until the optional 11.2 collectors are enabled
 in `config.yaml` (`collectors.{alerts,malware,catalog,slo}.enabled: true`) and the appliance returns

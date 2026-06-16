@@ -191,9 +191,9 @@ curl -s http://localhost:9440/metrics | head -20
 curl -s http://localhost:9440/metrics | grep -E "^nbu_" | head -10
 
 # Expected metrics:
-# nbu_storage_bytes{...}
+# nbu_disk_bytes{...}
 # nbu_jobs_count{...}
-# nbu_jobs_size_bytes{...}
+# nbu_jobs_bytes{...}
 ```
 
 ### Level 3: API Communication
@@ -212,7 +212,7 @@ tail -50 log/nbu-exporter.log | grep -E "Successfully fetched|API version"
 
 ```bash
 # Verify storage metrics have data
-curl -s http://localhost:9440/metrics | grep "nbu_storage_bytes" | wc -l
+curl -s http://localhost:9440/metrics | grep "nbu_disk_bytes" | wc -l
 # Should be > 0 if storage units exist
 
 # Verify job metrics have data
@@ -220,7 +220,7 @@ curl -s http://localhost:9440/metrics | grep "nbu_jobs_count" | wc -l
 # Should be > 0 if jobs exist in time window
 
 # Check metric values are reasonable
-curl -s http://localhost:9440/metrics | grep "nbu_storage_bytes" | grep "size=\"free\""
+curl -s http://localhost:9440/metrics | grep "nbu_disk_bytes" | grep "size=\"free\""
 curl -s http://localhost:9440/metrics | grep "nbu_jobs_count"
 ```
 
@@ -233,7 +233,7 @@ curl -s 'http://prometheus:9090/api/v1/query?query=up{job="netbackup"}' | jq .
 # Expected: "value": [timestamp, "1"]
 
 # Verify recent data
-curl -s 'http://prometheus:9090/api/v1/query?query=nbu_storage_bytes' | jq .
+curl -s 'http://prometheus:9090/api/v1/query?query=nbu_disk_bytes' | jq .
 
 # Check scrape duration
 curl -s 'http://prometheus:9090/api/v1/query?query=scrape_duration_seconds{job="netbackup"}' | jq .
@@ -553,9 +553,9 @@ echo
 # Test 3: Metric names unchanged
 echo "Test 3: Metric names consistency"
 EXPECTED_METRICS=(
-    "nbu_storage_bytes"
+    "nbu_disk_bytes"
     "nbu_jobs_count"
-    "nbu_jobs_size_bytes"
+    "nbu_jobs_bytes"
 )
 
 for metric in "${EXPECTED_METRICS[@]}"; do

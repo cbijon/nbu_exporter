@@ -99,6 +99,29 @@ config: |
     malware: { enabled: false }
     catalog: { enabled: false }
     slo:     { enabled: false }
+  # Multi-site example: replace the nbuserver block above with nbuservers list.
+  # Each entry runs as an independent collector and attaches the site label to all metrics.
+  # nbuservers:
+  #   - site: "site-a"
+  #     scheme: "https"
+  #     uri: "/netbackup"
+  #     domain: "site-a.example.com"
+  #     domainType: "NT"
+  #     host: "nbu-master-a.example.com"
+  #     port: "1556"
+  #     apiKey: "REPLACE_WITH_API_KEY_A"
+  #     contentType: "application/vnd.netbackup+json; version=3.0"
+  #     insecureSkipVerify: false
+  #   - site: "site-b"
+  #     scheme: "https"
+  #     uri: "/netbackup"
+  #     domain: "site-b.example.com"
+  #     domainType: "NT"
+  #     host: "nbu-master-b.example.com"
+  #     port: "1556"
+  #     apiKey: "REPLACE_WITH_API_KEY_B"
+  #     contentType: "application/vnd.netbackup+json; version=3.0"
+  #     insecureSkipVerify: false
 
 env: []
 # - name: NBU1_HOSTNAME

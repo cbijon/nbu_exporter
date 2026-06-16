@@ -50,6 +50,7 @@ services:
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./deploy/prometheus/nbu.rules.yml:/etc/prometheus/rules/nbu.rules.yml:ro
+      - ./deploy/prometheus/nbu-lifecycle.rules.yml:/etc/prometheus/rules/nbu-lifecycle.rules.yml:ro
       - prometheus-data:/prometheus
     ports:
       - "${PROMETHEUS_PORT:-9090}:9090"
@@ -76,6 +77,7 @@ services:
       - ./grafana/nbu-jobs.json:/var/lib/grafana/dashboards/nbu-jobs.json:ro
       - ./grafana/nbu-storage.json:/var/lib/grafana/dashboards/nbu-storage.json:ro
       - ./grafana/nbu-dataprotection.json:/var/lib/grafana/dashboards/nbu-dataprotection.json:ro
+      - ./grafana/nbu-lifecycle.json:/var/lib/grafana/dashboards/nbu-lifecycle.json:ro
       # Companion dashboard (Grafana 1860) — requires a node_exporter scraped alongside.
       - ./grafana/node-exporter-full.json:/var/lib/grafana/dashboards/node-exporter-full.json:ro
       - grafana-storage:/var/lib/grafana

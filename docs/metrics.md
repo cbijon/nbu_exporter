@@ -16,12 +16,46 @@
 | `nbu_jobs_state_count` | `action`, `state` | Job count per lifecycle state (e.g. `ACTIVE`, `QUEUED`, `DONE`) |
 | `nbu_jobs_queued_count` | `action`, `reason` | Queued job count per NetBackup queue reason code |
 | `nbu_jobs_files_count` | `action`, `policy_type` | Total number of files processed by jobs |
-| `nbu_jobs_dedup_ratio` | `action`, `policy_type` | Mean deduplication ratio across jobs (emitted only when jobs exist) |
+| `nbu_jobs_dedup_ratio` | `action`, `policy_type` | Mean deduplication ratio across jobs (emitted only when jobs exist; suppressed on API v3.0) |
 | `nbu_job_duration_seconds` | `action`, `policy_type` | Histogram of completed job durations in seconds |
 
 The `nbu_job_duration_seconds` histogram covers completed jobs only (those with an
 `EndTime` after `StartTime`). Bucket upper bounds (seconds): 60, 300, 900, 1800,
 3600, 7200, 14400, 28800, 86400.
+
+## Per-Client Metrics
+
+These metrics track the backup lifecycle per client and policy across all job types
+(BACKUP, DUPLICATION, IMPORT). They enable alerting on missed backups, tape copies, and
+replication jobs independently.
+
+| Metric | Labels | Description |
+|--------|--------|-------------|
+| `nbu_client_jobs_count` | `client`, `policy`, `action`, `status` | Number of jobs per client, policy, action type, and exit status |
+| `nbu_client_last_job_success_seconds` | `client`, `policy`, `action` | Unix timestamp of the last successful (status=0) job completion per client, policy, and action |
+
+`nbu_client_last_job_success_seconds` is persistent across scrape windows: once a client
+has had a successful job of a given type, its timestamp is retained until a newer success
+is recorded. The metric does not disappear between scrapes even if no jobs ran in the
+current window.
+
+Use `time() - nbu_client_last_job_success_seconds{action="BACKUP"}` to compute the age of
+the last successful backup. Alert rules for 25h (BACKUP), 26h (DUPLICATION), and 28h
+(IMPORT) thresholds are in `deploy/prometheus/nbu-lifecycle.rules.yml`.
+
+## Multi-Site (Constant Labels)
+
+When monitoring multiple NetBackup master servers, each exporter instance can be configured
+with a `site` label via the `nbuservers[].site` field in `config.yaml`. This label is
+attached as a **constant label** on every metric emitted by that instance, allowing
+multi-site federation without label collisions:
+
+```promql
+nbu_jobs_bytes{site="site-a", action="BACKUP"}
+nbu_jobs_bytes{site="site-b", action="BACKUP"}
+```
+
+See [Configuration](getting-started/configuration.md) for the `nbuservers` multi-site setup.
 
 ## Storage Metrics
 
@@ -140,6 +174,7 @@ Four focused dashboards live in the `grafana/` directory:
 | `grafana/nbu-jobs.json` | `nbu-jobs` | Backup outcomes, states, volume, queue, durations, dedup |
 | `grafana/nbu-storage.json` | `nbu-storage` | Capacity utilization, storage units, limits |
 | `grafana/nbu-dataprotection.json` | `nbu-dataprotection` | Alerts, malware scans, catalog posture, SLOs (11.2) |
+| `grafana/nbu-lifecycle.json` | `nbu-lifecycle` | Per-client backup lifecycle: last success age, compliance gauges, failure rate (BACKUP / DUPLICATION / IMPORT) |
 
 The dashboards cross-link to each other via the shared `netbackup` tag (a tag-based
 dashboard-links dropdown) and use the `${datasource}` template variable so they work

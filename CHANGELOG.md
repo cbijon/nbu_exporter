@@ -24,6 +24,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   NetBackup 10.0–10.4 (replacing the never-valid `3.0`); the auto-detect ladder is now
   `14.0 → 13.0 → 12.0 → 10.0`. Includes the NBU 10.3 and 11.2 OpenAPI bundles used for
   validation ([#34](https://github.com/fjacquet/nbu_exporter/pull/34)).
+- **Per-client backup lifecycle metrics** — two new metrics track the backup lifecycle
+  per client, policy, and action (BACKUP / DUPLICATION / IMPORT):
+  - `nbu_client_jobs_count{site, client, action, status}` — job count per client
+  - `nbu_client_last_job_success_seconds{site, client, policy, action}` — Unix timestamp of
+    last successful (status=0) completion; persistent across scrape windows
+- **NetBackup lifecycle alerting rules** — `deploy/prometheus/nbu-lifecycle.rules.yml` adds
+  per-client compliance alerts: `NbuClientNoRecentBackup` (>25h), `NbuClientNoRecentTapeCopy`
+  (>26h), `NbuClientNoRecentReplication` (>28h), `NbuClientBackupFailureRate` (>20%/30m).
+- **Lifecycle Grafana dashboard** — `grafana/nbu-lifecycle.json` (UID `nbu-lifecycle`), 20
+  panels: SLA compliance gauges per action type, per-client age table, time series, failure
+  rate trend, top-10 clients by activity.
+- **Opt-in tape & disk-pool collector** (`collectors.tape.enabled: true`, API v12.0+ / NBU
+  10.5+) — four new metrics via four independent endpoints, each degrading gracefully:
+  - `nbu_tape_drives_count{site, drive_type, robot_type, status}` — drive state (DRIVE_STATUS_UP/DOWN)
+  - `nbu_tape_media_count{site, pool, media_type, robot_type}` — media volume inventory
+  - `nbu_tape_pool_partially_full{site, pool_name, pool_type}` — partially-full media per pool
+  - `nbu_disk_pool_volume_count{site, pool_name, storage_category, state}` — disk volume state (UP/DOWN/UNKNOWN)
+- **Tape & Disk Pools Grafana dashboard** — `grafana/nbu-tape.json` (UID `nbu-tape`), 24
+  panels generated from `grafana/gen/tape.py`: drive status, media inventory, volume pool
+  health, disk pool volume state. Panels stay empty on NBU 10.3/10.4 (API v10.0).
+- **Tape & disk-pool alerting rules** — `NbuTapeDriveDown` (drive in DRIVE_STATUS_DOWN >30m),
+  `NbuTapePoolScratchLow` (Scratch pool < 5 media), `NbuDiskPoolVolumeDegraded` (volume not UP).
 
 ### Fixed
 
@@ -42,91 +64,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Repo hygiene: removed a 22 MB committed `go test -c` binary and empty doc stubs, untracked
   `.planning/` and `.serena/` tool state (now gitignored), and fixed a stale `3.0` reference
   in `config-auto-detect.yaml` ([#35](https://github.com/fjacquet/nbu_exporter/pull/35)).
-
-## [3.0.1] - 2026-06-14
-
-### Added
-
-- **Helm chart** for Kubernetes deployment, with lockstep version publishing alongside
-  container images ([#33](https://github.com/fjacquet/nbu_exporter/pull/33)).
-
-## [3.0.0] - 2026-06-14
-
-### Changed
-
-- **BREAKING:** the canonical metrics/exporter port is now **9440** (previously 2112).
-  Update Prometheus scrape configs, compose files, Helm values, and firewall rules
-  accordingly ([#32](https://github.com/fjacquet/nbu_exporter/pull/32)).
-
-### Added
-
-- Node Exporter Full (Grafana dashboard 1860) companion dashboard for host-level metrics
-  alongside the NBU dashboards ([#32](https://github.com/fjacquet/nbu_exporter/pull/32)).
-
-## [2.14.1] - 2026-06-14
-
-### Fixed
-
-- Demo compose stack: log to stdout and allow overriding host ports
-  ([#30](https://github.com/fjacquet/nbu_exporter/pull/30)).
-
-## [2.14.0] - 2026-06-14
-
-### Added
-
-- **Observability quickstart demo stack** — exporter + Prometheus + Grafana with datasource
-  and dashboard provisioning, runnable with one `docker compose up`
-  ([#29](https://github.com/fjacquet/nbu_exporter/pull/29)).
-- **Redesigned Grafana dashboards** — focused, generator-produced (`grafana/gen/`),
-  cross-linked; the legacy hardcoded dashboard was retired
-  ([#28](https://github.com/fjacquet/nbu_exporter/pull/28)).
-
-## [2.13.0] - 2026-06-14
-
-### Added
-
-- **NetBackup 11.2 (API version 14.0) support**: auto-detection probes `14.0` first
-  (`14.0 → 13.0 → 12.0 → 3.0`), with v14 response fixtures.
-- **Opt-in sub-collector framework** ([ADR-0002](https://github.com/fjacquet/nbu_exporter/blob/main/docs/adr/0002-opt-in-sub-collector-framework.md))
-  with four collectors, all **default-off** via a new `collectors:` config section: alerts
-  (`nbu_alerts_count`), malware scan results, catalog posture, and SLO compliance
-  (`nbu_slo_count`). Each degrades gracefully and never affects `nbu_up`.
-- Grafana panels for the new alerts/malware/catalog/SLO metrics.
-
-## [2.12.0] - 2026-06-12
-
-### Added
-
-- Extended NetBackup job and storage metrics — job state, files, dedup ratio, queued reason,
-  a duration histogram, and storage-capability info — plus templated dashboard and alerting
-  rules ([#26](https://github.com/fjacquet/nbu_exporter/pull/26)).
-
-## [2.11.1] - 2026-06-12
-
-### Fixed
-
-- Docker image copies the CA bundle from the build stage instead of `apk add`, for a smaller
-  and more reproducible image ([#25](https://github.com/fjacquet/nbu_exporter/pull/25)).
-
-## [2.11.0] - 2026-06-12
-
-### Added
-
-- Native `.env` loading at startup with no-override semantics (a real environment variable
-  always wins over the `.env` file).
-
-## [2.10.0] - 2026-06-11
-
-### Changed
-
-- Aligned `.gitignore` with the exporter-family canonical template.
-
-## [2.9.0] - 2026-06-11
-
-### Added
-
-- `--trace` flag to log NetBackup API **response bodies** for live-appliance payload
-  validation. It never logs request headers or credentials.
 
 ## [2.8.0] - 2026-06-05
 

@@ -1,0 +1,57 @@
+# Multi-site NetBackup exporter configuration
+#
+# Use this when monitoring two or more NetBackup master servers from a single
+# exporter process.  Each entry in `nbuservers` runs as an independent
+# Prometheus collector.  The `site` value is attached as a constant label on
+# every metric emitted by that collector, so metrics from different masters
+# never collide in Prometheus:
+#
+#   nbu_jobs_bytes{site="site-a", action="BACKUP"} 1234567
+#   nbu_jobs_bytes{site="site-b", action="BACKUP"} 9876543
+#
+# Prerequisites:
+#   - Network access from the exporter host to each master server on port 1556
+#   - A valid NetBackup API key for each master (generated from the NBU UI)
+#   - Set the env variables below (e.g. in a .env file or your secrets manager)
+#
+# Env variables used here:
+#   NBU_A_HOST, NBU_A_KEY
+#   NBU_B_HOST, NBU_B_KEY
+
+server:
+  host: "0.0.0.0"
+  port: "9440"
+  uri: "/metrics"
+  scrapingInterval: "1h"
+  logName: "log/nbu-exporter.log"
+
+nbuservers:
+  - site: "site-a"
+    scheme: "https"
+    uri: "/netbackup"
+    domain: "site-a.example.com"
+    domainType: "NT"
+    host: "${NBU_A_HOST}"
+    port: "1556"
+    # apiVersion: "3.0"   # omit for auto-detection (adds ~2s to startup)
+    apiKey: "${NBU_A_KEY}"
+    contentType: "application/vnd.netbackup+json; version=3.0"
+    insecureSkipVerify: false
+
+  - site: "site-b"
+    scheme: "https"
+    uri: "/netbackup"
+    domain: "site-b.example.com"
+    domainType: "NT"
+    host: "${NBU_B_HOST}"
+    port: "1556"
+    apiKey: "${NBU_B_KEY}"
+    contentType: "application/vnd.netbackup+json; version=3.0"
+    insecureSkipVerify: false
+
+# Optional: OpenTelemetry distributed tracing
+# opentelemetry:
+#   enabled: true
+#   endpoint: "localhost:4317"
+#   insecure: true
+#   samplingRate: 0.1

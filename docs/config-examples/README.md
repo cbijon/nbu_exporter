@@ -77,26 +77,22 @@ This directory contains example configuration files for different NetBackup depl
 
 ---
 
-### 5. Multi-Site (multiple primary servers)
+### 5. Multi-Site / Multi-Master
 
-**File:** `config-multisite.yaml`
+**File:** `config-netbackup-multi-site.yaml`
 
 **Use when:**
-- You run more than one NetBackup primary server (typically one per site)
-- You want a single exporter instance to scrape them all
-- You want every metric labelled with its `site`
+- Monitoring two or more NetBackup master servers from a single exporter process
+- Running a primary/DR architecture where backup images are replicated between sites
+- You want `site` labels to distinguish metrics in Prometheus/Grafana without running multiple exporter instances
 
 **Features:**
-- A `nbuservers:` list with one entry per server, each with a unique `site`
-- A background collection loop polls every site on `collectionInterval`
-  (default 5m); scrapes read the latest snapshot, so backend API load is
-  decoupled from scrape frequency
-- Every metric series carries a `site` label (first label)
-- A down site shows only `nbu_up{site="..."}=0` and never affects the others
-- The legacy single `nbuserver:` block still works (auto-mapped to a one-entry
-  list whose `site` defaults to the host)
+- `nbuservers` list instead of single `nbuserver` block
+- Per-entry `site` label stamped as a Prometheus constant label on every metric
+- Each entry can use a different API version, credentials, and TLS settings
+- Lifecycle dashboard (`nbu-lifecycle.json`) and alert rules (`nbu-lifecycle.rules.yml`) include `site` in all selectors
 
-**Best for:** Two-or-more-primary deployments; per-site dashboards and alerts
+**Best for:** Two-site NetBackup environments (primary + DR), multi-cluster monitoring
 
 ---
 
@@ -108,11 +104,12 @@ Select the configuration file that matches your NetBackup version:
 
 | NetBackup Version | Recommended File | API Version |
 |-------------------|------------------|-------------|
-| 11.0+             | `config-netbackup-11.yaml` | 13.0 |
+| 11.2+             | `config-netbackup-11.yaml` | 14.0 |
+| 11.0              | `config-netbackup-11.yaml` | 13.0 |
 | 10.5              | `config-netbackup-10.5.yaml` | 12.0 |
 | 10.0-10.4         | `config-netbackup-10.0.yaml` | 10.0 |
 | Any/Mixed         | `config-auto-detect.yaml` | Auto |
-| Multiple servers  | `config-multisite.yaml` | Per-site |
+| Multi-site        | `config-netbackup-multi-site.yaml` | Per-entry |
 
 ### Step 2: Copy and Customize
 
