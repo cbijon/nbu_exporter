@@ -29,37 +29,39 @@ const (
 // The collector is registered only when the detected API version is >= v12.0
 // (gate applied in buildSubCollectors).
 type tapeCollector struct {
-	client               NetBackupClient
-	cfg                  models.Config
-	descDrives           *prometheus.Desc
-	descMedia            *prometheus.Desc
-	descPoolPartial      *prometheus.Desc
-	descDiskPoolVolumes  *prometheus.Desc
+	client              NetBackupClient
+	cfg                 models.Config
+	site                string
+	descDrives          *prometheus.Desc
+	descMedia           *prometheus.Desc
+	descPoolPartial     *prometheus.Desc
+	descDiskPoolVolumes *prometheus.Desc
 }
 
-func newTapeCollector(client NetBackupClient, cfg models.Config, constLabels prometheus.Labels) *tapeCollector {
+func newTapeCollector(client NetBackupClient, cfg models.Config, site string) *tapeCollector {
 	return &tapeCollector{
 		client: client,
 		cfg:    cfg,
+		site:   site,
 		descDrives: prometheus.NewDesc(
 			"nbu_tape_drives_count",
 			"Number of tape drives grouped by drive type, robot type, and drive status",
-			[]string{"drive_type", "robot_type", "status"}, constLabels,
+			[]string{"site", "drive_type", "robot_type", "status"}, nil,
 		),
 		descMedia: prometheus.NewDesc(
 			"nbu_tape_media_count",
 			"Number of tape media volumes grouped by pool, media type, and robot type",
-			[]string{"pool", "media_type", "robot_type"}, constLabels,
+			[]string{"site", "pool", "media_type", "robot_type"}, nil,
 		),
 		descPoolPartial: prometheus.NewDesc(
 			"nbu_tape_pool_partially_full",
 			"Number of partially full tape media volumes in each volume pool",
-			[]string{"pool_name", "pool_type"}, constLabels,
+			[]string{"site", "pool_name", "pool_type"}, nil,
 		),
 		descDiskPoolVolumes: prometheus.NewDesc(
 			"nbu_disk_pool_volume_count",
 			"Number of disk volumes per disk pool, grouped by pool name, storage category, and volume state (UP/DOWN/UNKNOWN)",
-			[]string{"pool_name", "storage_category", "state"}, constLabels,
+			[]string{"site", "pool_name", "storage_category", "state"}, nil,
 		),
 	}
 }
@@ -130,7 +132,7 @@ func (t *tapeCollector) collectDrives(ctx context.Context, ch chan<- prometheus.
 	for k, v := range counts {
 		ch <- prometheus.MustNewConstMetric(
 			t.descDrives, prometheus.GaugeValue, v,
-			k.driveType, k.robotType, k.status,
+			t.site, k.driveType, k.robotType, k.status,
 		)
 	}
 	return nil
@@ -169,7 +171,7 @@ func (t *tapeCollector) collectMedia(ctx context.Context, ch chan<- prometheus.M
 	for k, v := range counts {
 		ch <- prometheus.MustNewConstMetric(
 			t.descMedia, prometheus.GaugeValue, v,
-			k.pool, k.mediaType, k.robotType,
+			t.site, k.pool, k.mediaType, k.robotType,
 		)
 	}
 	return nil
@@ -192,8 +194,7 @@ func (t *tapeCollector) collectPools(ctx context.Context, ch chan<- prometheus.M
 			ch <- prometheus.MustNewConstMetric(
 				t.descPoolPartial, prometheus.GaugeValue,
 				float64(p.Attributes.PartiallyFullMedia),
-				p.Attributes.VolumePoolName,
-				p.Attributes.PoolType,
+				t.site, p.Attributes.VolumePoolName, p.Attributes.PoolType,
 			)
 		}
 		if resp.Meta.Pagination.Next == 0 || len(resp.Data) == 0 {
@@ -240,7 +241,7 @@ func (t *tapeCollector) collectDiskPools(ctx context.Context, ch chan<- promethe
 	for k, v := range counts {
 		ch <- prometheus.MustNewConstMetric(
 			t.descDiskPoolVolumes, prometheus.GaugeValue, v,
-			k.poolName, k.storageCategory, k.state,
+			t.site, k.poolName, k.storageCategory, k.state,
 		)
 	}
 	return nil

@@ -13,8 +13,26 @@ import (
 // buildSubCollectorsFor returns the enabled opt-in collectors for one target,
 // each labelled with the given site. Shared by the per-target collection loop
 // and the (single-site) live collector.
+//
+// Version gates:
+//   - Tape collector requires API v12.0+ (NBU 10.5+).
+//   - Alerts, malware, catalog, SLO require API v14.0 (NBU 11.2+).
 func buildSubCollectorsFor(client NetBackupClient, cfg models.Config, site string) []subCollector {
 	var subs []subCollector
+
+	// Tape: API v12.0+ (NBU 10.5+). Silently skipped on v10.0 / v3.0.
+	if cfg.Collectors.Tape.Enabled {
+		apiVer := cfg.NbuServer.APIVersion
+		if apiVer == models.APIVersion100 {
+			log.WithFields(log.Fields{
+				"api_version": apiVer,
+				"required":    models.APIVersion120,
+			}).Warn("tape collector requires NBU 10.5 (API v12.0+) — disabled for this API version")
+		} else {
+			subs = append(subs, newTapeCollector(client, cfg, site))
+		}
+	}
+
 	if cfg.Collectors.Alerts.Enabled {
 		subs = append(subs, newAlertsCollector(client, cfg, site))
 	}

@@ -9,6 +9,7 @@ import (
 
 	"github.com/fjacquet/nbu_exporter/internal/models"
 	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -86,200 +87,6 @@ func makePool(name, poolType string, partiallyFull int) models.TapeVolumePool {
 	return p
 }
 
-// minimalTapeConfig returns a Config with the minimum fields needed for BuildURL
-// to produce a valid URL (scheme + host + port + uri).
-func minimalTapeConfig() models.Config {
-	cfg := models.Config{}
-	cfg.NbuServer.Scheme = "http"
-	cfg.NbuServer.Host = "localhost"
-	cfg.NbuServer.Port = "1556"
-	cfg.NbuServer.URI = "/netbackup"
-	return cfg
-}
-
-// collectTapeMetrics runs the tape collector and returns all emitted metrics.
-func collectTapeMetrics(t *testing.T, client NetBackupClient) []prometheus.Metric {
-	t.Helper()
-	tc := newTapeCollector(client, minimalTapeConfig(), nil)
-	ch := make(chan prometheus.Metric, 64)
-	err := tc.Collect(context.Background(), ch)
-	close(ch)
-	require.NoError(t, err)
-	return collectToSlice(ch)
-}
-
-// TestTapeCollectorName verifies the collector has the expected name.
-func TestTapeCollectorName(t *testing.T) {
-	tc := newTapeCollector(nil, minimalTapeConfig(), nil)
-	assert.Equal(t, "tape", tc.Name())
-}
-
-// TestTapeCollectorGateV30 verifies that the tape collector is NOT added to
-// the sub-collector list when the API version is v3.0, even when tape is enabled.
-func TestTapeCollectorGateV30(t *testing.T) {
-	cfg := models.Config{}
-	cfg.Collectors.Tape.Enabled = true
-	c := makeMinimalCollector(models.APIVersion30, cfg)
-	c.client = &NbuClient{cfg: cfg}
-
-	subs := buildSubCollectors(c)
-	for _, s := range subs {
-		assert.NotEqual(t, "tape", s.Name(),
-			"tape collector must not be active for API v3.0")
-	}
-}
-
-// TestTapeCollectorGateV12Plus verifies that the tape collector IS included for
-// API versions v12.0, v13.0, and v14.0.
-func TestTapeCollectorGateV12Plus(t *testing.T) {
-	for _, ver := range []string{models.APIVersion120, models.APIVersion130, models.APIVersion140} {
-		t.Run("API_v"+ver, func(t *testing.T) {
-			cfg := models.Config{}
-			cfg.Collectors.Tape.Enabled = true
-			c := makeMinimalCollector(ver, cfg)
-			c.client = &NbuClient{cfg: cfg}
-
-			subs := buildSubCollectors(c)
-			found := false
-			for _, s := range subs {
-				if s.Name() == "tape" {
-					found = true
-				}
-			}
-			assert.True(t, found,
-				"tape collector must be active for API version %s", ver)
-		})
-	}
-}
-
-// TestTapeCollectorDrives verifies that nbu_tape_drives_count is emitted and
-// aggregates correctly by (drive_type, robot_type, status).
-func TestTapeCollectorDrives(t *testing.T) {
-	client := &fakeTapeClient{
-		responses: map[string]interface{}{
-			tapeDrivesPath:     driveResponse([]models.TapeDrive{
-				makeDrive("DT_HCART", "TLD", "DRIVE_STATUS_UP"),
-				makeDrive("DT_HCART", "TLD", "DRIVE_STATUS_UP"),
-				makeDrive("DT_HCART", "TLD", "DRIVE_STATUS_DOWN"),
-			}),
-			tapeMediaPath:      mediaResponse(nil),
-			tapeVolumePoolPath: poolResponse(nil),
-		},
-	}
-
-	tc := newTapeCollector(client, minimalTapeConfig(), nil)
-	ch := make(chan prometheus.Metric, 64)
-	err := tc.Collect(context.Background(), ch)
-	close(ch)
-	require.NoError(t, err)
-
-	metrics := collectToSlice(ch)
-	driveMetrics := 0
-	for _, m := range metrics {
-		if m.Desc() == tc.descDrives {
-			driveMetrics++
-		}
-	}
-	// 2 UP + 1 DOWN → 2 distinct label combinations
-	assert.Equal(t, 2, driveMetrics, "expected 2 drive metric series (UP and DOWN)")
-}
-
-// TestTapeCollectorMedia verifies that nbu_tape_media_count is emitted and
-// aggregates correctly by (pool, media_type, robot_type).
-func TestTapeCollectorMedia(t *testing.T) {
-	client := &fakeTapeClient{
-		responses: map[string]interface{}{
-			tapeDrivesPath: driveResponse(nil),
-			tapeMediaPath: mediaResponse([]models.TapeMediaVolume{
-				makeVol("PoolA", "HCART", "TLD"),
-				makeVol("PoolA", "HCART", "TLD"),
-				makeVol("PoolB", "HCART3", "TLD"),
-			}),
-			tapeVolumePoolPath: poolResponse(nil),
-		},
-	}
-
-	tc := newTapeCollector(client, minimalTapeConfig(), nil)
-	ch := make(chan prometheus.Metric, 64)
-	err := tc.Collect(context.Background(), ch)
-	close(ch)
-	require.NoError(t, err)
-
-	metrics := collectToSlice(ch)
-	mediaMetrics := 0
-	for _, m := range metrics {
-		if m.Desc() == tc.descMedia {
-			mediaMetrics++
-		}
-	}
-	// PoolA/HCART/TLD + PoolB/HCART3/TLD → 2 distinct series
-	assert.Equal(t, 2, mediaMetrics, "expected 2 media metric series")
-}
-
-// TestTapeCollectorPools verifies that nbu_tape_pool_partially_full is emitted
-// with the correct value per pool.
-func TestTapeCollectorPools(t *testing.T) {
-	client := &fakeTapeClient{
-		responses: map[string]interface{}{
-			tapeDrivesPath: driveResponse(nil),
-			tapeMediaPath:  mediaResponse(nil),
-			tapeVolumePoolPath: poolResponse([]models.TapeVolumePool{
-				makePool("NetBackup", "REGULAR_MEDIA_POOL", 3),
-				makePool("Scratch", "SCRATCH_MEDIA_POOL", 0),
-			}),
-		},
-	}
-
-	tc := newTapeCollector(client, minimalTapeConfig(), nil)
-	ch := make(chan prometheus.Metric, 64)
-	err := tc.Collect(context.Background(), ch)
-	close(ch)
-	require.NoError(t, err)
-
-	metrics := collectToSlice(ch)
-	poolMetrics := 0
-	for _, m := range metrics {
-		if m.Desc() == tc.descPoolPartial {
-			poolMetrics++
-		}
-	}
-	assert.Equal(t, 2, poolMetrics, "expected 2 pool metric series (one per pool)")
-}
-
-// TestTapeCollectorGracefulDegradation verifies that a drives failure does not
-// prevent pool and media metrics from being emitted.
-func TestTapeCollectorGracefulDegradation(t *testing.T) {
-	drives := &fakeTapeClient{fetchErr: fmt.Errorf("drives endpoint unavailable")}
-	// Use a client that only fails on drives
-	gracefulClient := &gracefulTapeClient{
-		drivesErr: fmt.Errorf("drives endpoint unavailable"),
-		mediaResp: mediaResponse([]models.TapeMediaVolume{makeVol("Pool", "HCART", "TLD")}),
-		poolResp:  poolResponse([]models.TapeVolumePool{makePool("Pool", "REGULAR_MEDIA_POOL", 1)}),
-	}
-	_ = drives // declared above for clarity only
-
-	tc := newTapeCollector(gracefulClient, minimalTapeConfig(), nil)
-	ch := make(chan prometheus.Metric, 64)
-	err := tc.Collect(context.Background(), ch)
-	close(ch)
-
-	// Drives failed → first error is returned, but other endpoints still emit
-	assert.Error(t, err, "expected error from drives failure")
-
-	metrics := collectToSlice(ch)
-	mediaFound, poolFound := false, false
-	for _, m := range metrics {
-		if m.Desc() == tc.descMedia {
-			mediaFound = true
-		}
-		if m.Desc() == tc.descPoolPartial {
-			poolFound = true
-		}
-	}
-	assert.True(t, mediaFound, "media metrics must be emitted even when drives fail")
-	assert.True(t, poolFound, "pool metrics must be emitted even when drives fail")
-}
-
 // diskPoolResponse builds a single-page DiskPools API response.
 func diskPoolResponse(pools []models.DiskPool) models.DiskPools {
 	return models.DiskPools{Data: pools}
@@ -300,14 +107,193 @@ func makeDiskVolume(name, state string) models.DiskVolume {
 	return models.DiskVolume{Name: name, ID: name, State: state}
 }
 
+// drainMetrics drains a closed metrics channel into a slice.
+func drainMetrics(ch <-chan prometheus.Metric) []prometheus.Metric {
+	var out []prometheus.Metric
+	for m := range ch {
+		out = append(out, m)
+	}
+	return out
+}
+
+// tapeLabelValue reads a label from a dto.Metric by name.
+func tapeLabelValue(d *dto.Metric, name string) string {
+	for _, lp := range d.GetLabel() {
+		if lp.GetName() == name {
+			return lp.GetValue()
+		}
+	}
+	return ""
+}
+
+// TestTapeCollectorName verifies the collector has the expected name.
+func TestTapeCollectorName(t *testing.T) {
+	tc := newTapeCollector(nil, testConfig(), "test-site")
+	assert.Equal(t, "tape", tc.Name())
+}
+
+// TestTapeCollectorGateV100 verifies that the tape collector is NOT added to
+// the sub-collector list when the API version is v10.0.
+func TestTapeCollectorGateV100(t *testing.T) {
+	cfg := testConfig()
+	cfg.NbuServer.APIVersion = models.APIVersion100
+	cfg.Collectors.Tape.Enabled = true
+	client := &fakeTapeClient{}
+
+	subs := buildSubCollectorsFor(client, cfg, "test-site")
+	for _, s := range subs {
+		assert.NotEqual(t, "tape", s.Name(),
+			"tape collector must not be active for API v10.0")
+	}
+}
+
+// TestTapeCollectorGateV12Plus verifies that the tape collector IS included for
+// API versions v12.0, v13.0, and v14.0.
+func TestTapeCollectorGateV12Plus(t *testing.T) {
+	for _, ver := range []string{models.APIVersion120, models.APIVersion130, models.APIVersion140} {
+		t.Run("API_v"+ver, func(t *testing.T) {
+			cfg := testConfig()
+			cfg.NbuServer.APIVersion = ver
+			cfg.Collectors.Tape.Enabled = true
+			client := &fakeTapeClient{}
+
+			subs := buildSubCollectorsFor(client, cfg, "test-site")
+			found := false
+			for _, s := range subs {
+				if s.Name() == "tape" {
+					found = true
+				}
+			}
+			assert.True(t, found,
+				"tape collector must be active for API version %s", ver)
+		})
+	}
+}
+
+// TestTapeCollectorDrives verifies that nbu_tape_drives_count is emitted and
+// aggregates correctly by (site, drive_type, robot_type, status).
+func TestTapeCollectorDrives(t *testing.T) {
+	client := &fakeTapeClient{
+		responses: map[string]interface{}{
+			tapeDrivesPath: driveResponse([]models.TapeDrive{
+				makeDrive("DT_HCART", "TLD", "DRIVE_STATUS_UP"),
+				makeDrive("DT_HCART", "TLD", "DRIVE_STATUS_UP"),
+				makeDrive("DT_HCART", "TLD", "DRIVE_STATUS_DOWN"),
+			}),
+		},
+	}
+
+	tc := newTapeCollector(client, testConfig(), "test-site")
+	ch := make(chan prometheus.Metric, 64)
+	err := tc.Collect(context.Background(), ch)
+	close(ch)
+	require.NoError(t, err)
+
+	driveMetrics := 0
+	for m := range ch {
+		var d dto.Metric
+		require.NoError(t, m.Write(&d))
+		if m.Desc() == tc.descDrives {
+			assert.Equal(t, "test-site", tapeLabelValue(&d, "site"))
+			driveMetrics++
+		}
+	}
+	// 2 UP + 1 DOWN → 2 distinct label combinations
+	assert.Equal(t, 2, driveMetrics, "expected 2 drive metric series (UP and DOWN)")
+}
+
+// TestTapeCollectorMedia verifies that nbu_tape_media_count is emitted and
+// aggregates correctly by (site, pool, media_type, robot_type).
+func TestTapeCollectorMedia(t *testing.T) {
+	client := &fakeTapeClient{
+		responses: map[string]interface{}{
+			tapeMediaPath: mediaResponse([]models.TapeMediaVolume{
+				makeVol("PoolA", "HCART", "TLD"),
+				makeVol("PoolA", "HCART", "TLD"),
+				makeVol("PoolB", "HCART3", "TLD"),
+			}),
+		},
+	}
+
+	tc := newTapeCollector(client, testConfig(), "test-site")
+	ch := make(chan prometheus.Metric, 64)
+	err := tc.Collect(context.Background(), ch)
+	close(ch)
+	require.NoError(t, err)
+
+	mediaMetrics := 0
+	for m := range ch {
+		if m.Desc() == tc.descMedia {
+			mediaMetrics++
+		}
+	}
+	// PoolA/HCART/TLD + PoolB/HCART3/TLD → 2 distinct series
+	assert.Equal(t, 2, mediaMetrics, "expected 2 media metric series")
+}
+
+// TestTapeCollectorPools verifies that nbu_tape_pool_partially_full is emitted
+// with the correct value per pool.
+func TestTapeCollectorPools(t *testing.T) {
+	client := &fakeTapeClient{
+		responses: map[string]interface{}{
+			tapeVolumePoolPath: poolResponse([]models.TapeVolumePool{
+				makePool("NetBackup", "REGULAR_MEDIA_POOL", 3),
+				makePool("Scratch", "SCRATCH_MEDIA_POOL", 0),
+			}),
+		},
+	}
+
+	tc := newTapeCollector(client, testConfig(), "test-site")
+	ch := make(chan prometheus.Metric, 64)
+	err := tc.Collect(context.Background(), ch)
+	close(ch)
+	require.NoError(t, err)
+
+	poolMetrics := 0
+	for m := range ch {
+		if m.Desc() == tc.descPoolPartial {
+			poolMetrics++
+		}
+	}
+	assert.Equal(t, 2, poolMetrics, "expected 2 pool metric series (one per pool)")
+}
+
+// TestTapeCollectorGracefulDegradation verifies that a drives failure does not
+// prevent pool and media metrics from being emitted.
+func TestTapeCollectorGracefulDegradation(t *testing.T) {
+	gracefulClient := &gracefulTapeClient{
+		drivesErr: fmt.Errorf("drives endpoint unavailable"),
+		mediaResp: mediaResponse([]models.TapeMediaVolume{makeVol("Pool", "HCART", "TLD")}),
+		poolResp:  poolResponse([]models.TapeVolumePool{makePool("Pool", "REGULAR_MEDIA_POOL", 1)}),
+	}
+
+	tc := newTapeCollector(gracefulClient, testConfig(), "test-site")
+	ch := make(chan prometheus.Metric, 64)
+	err := tc.Collect(context.Background(), ch)
+	close(ch)
+
+	// Drives failed → first error is returned, but other endpoints still emit
+	assert.Error(t, err, "expected error from drives failure")
+
+	metrics := drainMetrics(ch)
+	mediaFound, poolFound := false, false
+	for _, m := range metrics {
+		if m.Desc() == tc.descMedia {
+			mediaFound = true
+		}
+		if m.Desc() == tc.descPoolPartial {
+			poolFound = true
+		}
+	}
+	assert.True(t, mediaFound, "media metrics must be emitted even when drives fail")
+	assert.True(t, poolFound, "pool metrics must be emitted even when drives fail")
+}
+
 // TestTapeCollectorDiskPools verifies that nbu_disk_pool_volume_count is emitted
-// and aggregated correctly by (pool_name, storage_category, state).
+// and aggregated correctly by (site, pool_name, storage_category, state).
 func TestTapeCollectorDiskPools(t *testing.T) {
 	client := &fakeTapeClient{
 		responses: map[string]interface{}{
-			tapeDrivesPath:     driveResponse(nil),
-			tapeMediaPath:      mediaResponse(nil),
-			tapeVolumePoolPath: poolResponse(nil),
 			diskPoolsPath: diskPoolResponse([]models.DiskPool{
 				makeDiskPool("msdp-pool", "MSDP", []models.DiskVolume{
 					makeDiskVolume("vol-1", "UP"),
@@ -321,16 +307,18 @@ func TestTapeCollectorDiskPools(t *testing.T) {
 		},
 	}
 
-	tc := newTapeCollector(client, minimalTapeConfig(), nil)
+	tc := newTapeCollector(client, testConfig(), "test-site")
 	ch := make(chan prometheus.Metric, 64)
 	err := tc.Collect(context.Background(), ch)
 	close(ch)
 	require.NoError(t, err)
 
-	metrics := collectToSlice(ch)
 	diskPoolMetrics := 0
-	for _, m := range metrics {
+	for m := range ch {
+		var d dto.Metric
+		require.NoError(t, m.Write(&d))
 		if m.Desc() == tc.descDiskPoolVolumes {
+			assert.Equal(t, "test-site", tapeLabelValue(&d, "site"))
 			diskPoolMetrics++
 		}
 	}
@@ -341,9 +329,9 @@ func TestTapeCollectorDiskPools(t *testing.T) {
 // gracefulTapeClient simulates a partial failure: drives endpoint fails,
 // media and pool endpoints succeed.
 type gracefulTapeClient struct {
-	drivesErr  error
-	mediaResp  models.TapeMedia
-	poolResp   models.TapeVolumePools
+	drivesErr error
+	mediaResp models.TapeMedia
+	poolResp  models.TapeVolumePools
 }
 
 func (g *gracefulTapeClient) FetchData(_ context.Context, url string, target interface{}) error {
