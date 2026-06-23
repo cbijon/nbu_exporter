@@ -6,6 +6,7 @@ package exporter
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/fjacquet/nbu_exporter/internal/models"
@@ -196,15 +197,15 @@ func (d *APIVersionDetector) tryVersion(ctx context.Context, version string) boo
 	return d.retryVersionTest(ctx, version, testURL, span)
 }
 
-// buildTestURL builds the test URL for version detection with the specified API version.
-// This method is immutable - it builds the URL without modifying any state.
-//
-// Parameters:
-//   - version: API version to include in the URL path
-//
-// Returns the test URL for the jobs endpoint
-func (d *APIVersionDetector) buildTestURL(version string) string {
-	return fmt.Sprintf("%s/admin/jobs?page[limit]=1", d.baseURL)
+// buildTestURL builds the test URL for version detection.
+// Uses url.Values.Encode() to properly percent-encode query parameters
+// (e.g. page[limit] → page%5Blimit%5D=1), which strict servers like NBU 10.3 require.
+func (d *APIVersionDetector) buildTestURL(_ string) string {
+	u, _ := url.Parse(d.baseURL + "/admin/jobs")
+	q := url.Values{}
+	q.Set("page[limit]", "1")
+	u.RawQuery = q.Encode()
+	return u.String()
 }
 
 // retryVersionTest implements retry logic with exponential backoff

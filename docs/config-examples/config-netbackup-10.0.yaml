@@ -4,7 +4,6 @@
 # Use this configuration when:
 # - Running NetBackup 10.0, 10.1, 10.2, 10.3, or 10.4
 # - You want to explicitly specify API version 10.0
-# - You're maintaining legacy NetBackup environments
 # - You want to skip automatic version detection for faster startup
 #
 # NetBackup Version: 10.0 - 10.4
@@ -15,29 +14,23 @@ server:
     host: "localhost"
     port: "9440"
     uri: "/metrics"
-    scrapingInterval: "1h"  # Time window for job collection (e.g., "30m", "1h", "2h")
+    scrapingInterval: "1h"   # Job lookback window per collection
+    collectionInterval: "5m" # How often the loop polls every site (default 5m)
     logName: "log/nbu-exporter.log"
 
-nbuserver:
-    scheme: "https"
-    uri: "/netbackup"
-    domain: "my.domain"
-    domainType: "NT"
-    host: "nbu10-legacy.my.domain"  # NetBackup 10.0-10.4 master server
-    port: "1556"
-    apiVersion: "10.0"  # Explicit API version for NetBackup 10.0-10.4
-    apiKey: "your-api-key-here"  # Generate from NetBackup UI
-    contentType: "application/vnd.netbackup+json; version=10.0"
-    insecureSkipVerify: false  # Set to true only for testing environments
-
-# Legacy Support:
-# - API version 10.0 is supported for NetBackup 10.0-10.4 environments
-# - Core metrics (jobs, storage) work the same across all API versions
-# - Some advanced features may not be available in older API versions
-# - Consider upgrading to NetBackup 10.5+ for latest features
+nbuservers:
+    - site: "primary"
+      scheme: "https"
+      uri: "/netbackup"
+      host: "nbu10-legacy.my.domain"
+      port: "1556"
+      apiVersion: "10.0"   # Explicit API version for NetBackup 10.0-10.4
+      apiKey: "your-api-key-here"
+      insecureSkipVerify: false
 
 # Notes:
-# - Replace "your-api-key-here" with your actual NetBackup API key
-# - Replace "nbu10-legacy.my.domain" with your NetBackup master server hostname
-# - Adjust scrapingInterval based on your monitoring needs
-# - Keep insecureSkipVerify: false for production environments
+# - Core metrics (jobs, storage) work the same across all API versions.
+# - Tape infrastructure metrics, dedup ratio, and disk-pool state
+#   are only available from NetBackup 10.5+ (API 12.0).
+# - Consider upgrading to NetBackup 10.5+ for full metric coverage.
+# - Keep insecureSkipVerify: false in production.

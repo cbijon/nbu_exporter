@@ -3,108 +3,53 @@ server:
   host: "localhost"
   port: "9440"
   uri: "/metrics"
-  scrapingInterval: "1h" # Changed from scrappingInterval (typo fix)
+  scrapingInterval: "1h"
   # "stdout" (also "" or "-") logs to stdout only — ideal for containers
   # (captured by `docker logs`), systemd/journald, and Kubernetes. Set a file
   # path (e.g. "/var/log/nbu_exporter/nbu-exporter.log") to also write a file;
   # its parent directory must already exist and be writable.
   logName: "stdout"
-nbuserver:
-  scheme: "https"
-  uri: "/netbackup"
-  domain: "my.domain"
-  domainType: "NT"
-  # host and apiKey support ${ENV_VAR} interpolation — set values in a .env
-  # file (gitignored) and reference them here.  Literal values also work
-  # (behaviour is unchanged when no ${...} syntax is present).
-  # Literal style (default, backwards-compatible):
-  #   host: "master.my.domain"
-  #   apiKey: "my-api-key"
-  host: "${NBU1_HOSTNAME}"
-  port: "1556"
-  apiVersion:
-    "13.0" # Optional: NetBackup API version (13.0, 12.0, or 3.0)
-    # If omitted, the exporter will automatically detect the version
-    # Supported versions:
-    #   - 13.0 (NetBackup 11.0+)
-    #   - 12.0 (NetBackup 10.5)
-    #   - 3.0  (NetBackup 10.0-10.4)
-  apiKey: "${NBU1_APIKEY}"
-  contentType: "application/vnd.netbackup+json; version=13.0" # Should match apiVersion
-  insecureSkipVerify: false # Set to true to skip TLS certificate verification (not recommended for production)
+
+# nbuservers: is the current format. One entry per NetBackup primary server.
+# The `site` value becomes a label on every metric emitted for that server.
+# Legacy `nbuserver:` (single block) still works but triggers a deprecation warning.
+#
+# host and apiKey support ${ENV_VAR} interpolation — set values in a .env file
+# (gitignored) and reference them here. Literal values also work.
+nbuservers:
+  - site: "primary"
+    scheme: "https"
+    uri: "/netbackup"
+    host: "${NBU1_HOSTNAME}"
+    port: "1556"
+    # apiVersion: "10.0"  # Optional: pin to a specific version (10.0 / 12.0 / 13.0 / 14.0)
+    # If omitted, auto-detects the highest supported version (14.0 → 13.0 → 12.0 → 10.0)
+    apiKey: "${NBU1_APIKEY}"
+    insecureSkipVerify: false  # Set to true only for testing environments
 
 # Optional: OpenTelemetry distributed tracing configuration
-# Enables distributed tracing for NetBackup API calls and Prometheus scrape cycles
-# Useful for diagnosing slow scrapes and identifying performance bottlenecks
+# Enables distributed tracing for NetBackup API calls and Prometheus scrape cycles.
+# Useful for diagnosing slow scrapes and identifying performance bottlenecks.
 opentelemetry:
-  # Enable or disable OpenTelemetry tracing
-  # When disabled, the exporter operates normally with zero tracing overhead
-  # Default: false
   enabled: false
-
-  # OTLP gRPC endpoint for trace export
-  # This should point to your OpenTelemetry Collector or observability backend
-  # Examples:
-  #   - Local collector: "localhost:4317"
-  #   - Remote collector: "otel-collector.example.com:4317"
-  #   - Jaeger: "jaeger:4317"
-  #   - Tempo: "tempo:4317"
-  # Required when enabled is true
+  # OTLP gRPC endpoint (Jaeger, Tempo, OTel Collector…)
   endpoint: "localhost:4317"
-
-  # Use insecure connection (no TLS) for OTLP export
-  # Set to true for development/testing environments
-  # Set to false for production environments with TLS-enabled collectors
-  # Default: false
-  # Note: This is separate from nbuserver.insecureSkipVerify
   insecure: true
-
-  # Sampling rate for trace collection (0.0 to 1.0)
-  # Controls what percentage of scrape cycles are traced
-  # Examples:
-  #   - 1.0: Trace all scrapes (100%) - useful for debugging
-  #   - 0.1: Trace 10% of scrapes - good for production monitoring
-  #   - 0.01: Trace 1% of scrapes - minimal overhead for high-frequency scraping
-  # Default: 1.0
-  # Performance impact: < 2% overhead at 0.1, < 5% overhead at 1.0
+  # Sampling rate: 1.0 = trace everything, 0.1 = 10%, 0.01 = 1%
   samplingRate: 0.1
 
-# Example configurations for different scenarios:
-
-# Development/Testing (trace everything):
-# opentelemetry:
-#     enabled: true
-#     endpoint: "localhost:4317"
-#     insecure: true
-#     samplingRate: 1.0
-
-# Production (sample 10% of scrapes):
-# opentelemetry:
-#     enabled: true
-#     endpoint: "otel-collector.prod.example.com:4317"
-#     insecure: false
-#     samplingRate: 0.1
-
-# High-frequency scraping (minimal overhead):
-# opentelemetry:
-#     enabled: true
-#     endpoint: "otel-collector.example.com:4317"
-#     insecure: false
-#     samplingRate: 0.01
-
 # Optional: opt-in metric collectors (all default to disabled).
-# alerts/malware/catalog/slo require NetBackup 11.2 (API version=14.0).
+# alerts/malware/catalog/slo require NetBackup 11.2 (API version 14.0).
 collectors:
   alerts:  { enabled: false }
   malware: { enabled: false }
   catalog: { enabled: false }
   slo:     { enabled: false }
   # Tape drives, media pools, partially-full volume pools and disk-pool volumes.
-  # Works on NBU 10.0+ (drive/media); volume-pool and disk-pool rows need 10.5+.
+  # Drive/media metrics work on NBU 10.0+; volume-pool and disk-pool need 10.5+.
   tape:    { enabled: false }
-  # Per-client backup compliance + lifecycle (BACKUP/DUPLICATION/IMPORT). The
-  # client label is high-cardinality, so an explicit allowlist is required —
-  # an empty allowlist emits nothing.
+  # Per-client backup compliance + lifecycle (BACKUP/DUPLICATION/IMPORT).
+  # The client label is high-cardinality; an empty allowlist emits nothing.
   perClient:
     enabled: false
     allowlist: []   # exact client names, e.g. ["db01", "app02"]

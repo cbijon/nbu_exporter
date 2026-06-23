@@ -9,7 +9,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// ResolveSecrets expands ${ENV} references in the NBU server host and apiKey fields.
+// ResolveSecrets expands ${ENV} references in host and apiKey fields for both the
+// legacy nbuserver: block and every entry in the nbuservers: list.
 // Mutates cfg in place. Call this immediately after YAML decode, before Validate().
 // Returns an error (with field context) if any referenced variable is not set.
 func ResolveSecrets(cfg *models.Config) error {
@@ -24,6 +25,20 @@ func ResolveSecrets(cfg *models.Config) error {
 		return fmt.Errorf("nbuserver.apiKey: %w", err)
 	}
 	cfg.NbuServer.APIKey = apiKey
+
+	for i := range cfg.NbuServers {
+		host, err := ExpandEnv(cfg.NbuServers[i].Host)
+		if err != nil {
+			return fmt.Errorf("nbuservers[%d].host: %w", i, err)
+		}
+		cfg.NbuServers[i].Host = host
+
+		apiKey, err := ExpandEnv(cfg.NbuServers[i].APIKey)
+		if err != nil {
+			return fmt.Errorf("nbuservers[%d].apiKey: %w", i, err)
+		}
+		cfg.NbuServers[i].APIKey = apiKey
+	}
 
 	return nil
 }

@@ -4,7 +4,7 @@
 # Use this configuration when:
 # - You want the exporter to automatically detect the NetBackup API version
 # - You're deploying across multiple NetBackup versions
-# - You want a single configuration that works with NetBackup 10.0, 10.5, and 11.0
+# - You want a single configuration that works with NetBackup 10.0, 10.5, and 11.x
 # - You're upgrading NetBackup and want the exporter to adapt automatically
 #
 # NetBackup Version: 10.0+ (any supported version)
@@ -15,46 +15,39 @@ server:
     host: "localhost"
     port: "9440"
     uri: "/metrics"
-    scrapingInterval: "1h"  # Time window for job collection (e.g., "30m", "1h", "2h")
+    scrapingInterval: "1h"   # Job lookback window per collection
+    collectionInterval: "5m" # How often the loop polls every site (default 5m)
     logName: "log/nbu-exporter.log"
 
-nbuserver:
-    scheme: "https"
-    uri: "/netbackup"
-    domain: "my.domain"
-    domainType: "NT"
-    host: "nbu-master.my.domain"  # NetBackup master server (any version 10.0+)
-    port: "1556"
-    # apiVersion: NOT SPECIFIED - Will auto-detect highest supported version
-    # Detection order: 14.0 (NBU 11.2) → 13.0 (NBU 11.0) → 12.0 (NBU 10.5) → 10.0 (NBU 10.0-10.4)
-    apiKey: "your-api-key-here"  # Generate from NetBackup UI
-    # contentType is intentionally omitted: with auto-detect, the Accept header is
-    # built dynamically from the detected apiVersion (the field is otherwise ignored).
-    insecureSkipVerify: false  # Set to true only for testing environments
+nbuservers:
+    - site: "primary"
+      scheme: "https"
+      uri: "/netbackup"
+      host: "nbu-master.my.domain"
+      port: "1556"
+      # apiVersion: NOT SPECIFIED — auto-detects highest supported version
+      # Detection order: 14.0 (NBU 11.2) → 13.0 (NBU 11.0) → 12.0 (NBU 10.5) → 10.0 (NBU 10.0-10.4)
+      apiKey: "your-api-key-here"
+      insecureSkipVerify: false
 
-# Version Detection Behavior:
-# 
-# The exporter will attempt to connect using API versions in this order:
-# 1. API 14.0 (NetBackup 11.2+)
-# 2. API 13.0 (NetBackup 11.0+)
-# 3. API 12.0 (NetBackup 10.5)
-# 4. API 10.0 (NetBackup 10.0-10.4)
-#
-# The first version that responds successfully will be used for all subsequent requests.
-#
-# Startup Log Example:
-#   INFO[0000] Starting NBU Exporter
-#   INFO[0001] Attempting API version detection
-#   DEBUG[0001] Trying API version 13.0
-#   INFO[0002] Detected NetBackup API version: 13.0
-#   INFO[0002] Successfully connected to NetBackup API
-#
-# Detection adds 1-3 seconds to startup time (one lightweight API call per version attempt).
-# For faster startup, specify an explicit apiVersion.
+# Optional: opt-in metric collectors (all default to disabled).
+# alerts/malware/catalog/slo require NetBackup 11.2 (API version 14.0).
+collectors:
+    alerts:  { enabled: false }
+    malware: { enabled: false }
+    catalog: { enabled: false }
+    slo:     { enabled: false }
+    # Tape drives, media pools, partially-full volume pools and disk-pool volumes.
+    # Drive/media metrics work on NBU 10.0+; volume-pool and disk-pool need 10.5+.
+    tape:    { enabled: false }
+    # Per-client backup compliance + lifecycle (BACKUP/DUPLICATION/IMPORT).
+    # An empty allowlist emits nothing.
+    perClient:
+        enabled: false
+        allowlist: []
 
 # Notes:
-# - Replace "your-api-key-here" with your actual NetBackup API key
-# - Replace "nbu-master.my.domain" with your NetBackup master server hostname
-# - Adjust scrapingInterval based on your monitoring needs
-# - Keep insecureSkipVerify: false for production environments
-# - This configuration works with NetBackup 10.0, 10.5, and 11.0 without changes
+# - For contiguous job coverage, keep scrapingInterval >= collectionInterval.
+# - Detection adds ~1 s per version attempt to startup time.
+#   For faster startup, pin apiVersion explicitly.
+# - Keep insecureSkipVerify: false in production.

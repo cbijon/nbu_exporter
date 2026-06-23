@@ -2,35 +2,43 @@
 # Configuration Example: NetBackup 11.0 with Explicit API Version 13.0
 #
 # Use this configuration when:
-# - Running NetBackup 11.0 or later
+# - Running NetBackup 11.0
 # - You want to explicitly specify API version 13.0
 # - You want to skip automatic version detection for faster startup
 #
-# NetBackup Version: 11.0+
+# NetBackup Version: 11.0
 # API Version: 13.0
 # Detection: Disabled (explicit version)
+#
+# For NetBackup 11.2, use apiVersion: "14.0" to enable additional collectors
+# (alerts, malware, catalog, slo).
 
 server:
     host: "localhost"
     port: "9440"
     uri: "/metrics"
-    scrapingInterval: "1h"  # Time window for job collection (e.g., "30m", "1h", "2h")
+    scrapingInterval: "1h"   # Job lookback window per collection
+    collectionInterval: "5m" # How often the loop polls every site (default 5m)
     logName: "log/nbu-exporter.log"
 
-nbuserver:
-    scheme: "https"
-    uri: "/netbackup"
-    domain: "my.domain"
-    domainType: "NT"
-    host: "nbu11-master.my.domain"  # NetBackup 11.0 master server
-    port: "1556"
-    apiVersion: "13.0"  # Explicit API version for NetBackup 11.0
-    apiKey: "your-api-key-here"  # Generate from NetBackup UI
-    contentType: "application/vnd.netbackup+json; version=3.0"
-    insecureSkipVerify: false  # Set to true only for testing environments
+nbuservers:
+    - site: "primary"
+      scheme: "https"
+      uri: "/netbackup"
+      host: "nbu11-master.my.domain"
+      port: "1556"
+      apiVersion: "13.0"   # Explicit API version for NetBackup 11.0
+      apiKey: "your-api-key-here"
+      insecureSkipVerify: false
+
+# Optional: opt-in metric collectors available from NetBackup 10.5+.
+# alerts/malware/catalog/slo require NetBackup 11.2 (API version 14.0).
+collectors:
+    tape:    { enabled: true }
+    perClient:
+        enabled: false
+        allowlist: []   # exact client names, e.g. ["db01", "app02"]
 
 # Notes:
-# - Replace "your-api-key-here" with your actual NetBackup API key
-# - Replace "nbu11-master.my.domain" with your NetBackup master server hostname
-# - Adjust scrapingInterval based on your monitoring needs
-# - Keep insecureSkipVerify: false for production environments
+# - Replace host and apiKey placeholders with your real values.
+# - Keep insecureSkipVerify: false in production.

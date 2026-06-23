@@ -1,37 +1,43 @@
 ---
-# Example configuration with automatic API version detection
-# The exporter will try versions in order: 14.0 -> 13.0 -> 12.0 -> 10.0
+# Configuration with automatic API version detection.
+# The exporter tries versions in order: 14.0 → 13.0 → 12.0 → 10.0
+# and uses the first one the server accepts.
 server:
   host: "localhost"
   port: "9440"
   uri: "/metrics"
   scrapingInterval: "1h"
-  logName: "stdout" # stdout-only logging (see config.yaml for file-logging notes)
-nbuserver:
-  scheme: "https"
-  uri: "/netbackup"
-  domain: "my.domain"
-  domainType: "NT"
-  host: "master.my.domain"
-  port: "1556"
-  # apiVersion: omitted for automatic detection
-  # The exporter will automatically detect the correct API version
-  # by trying: 14.0 (NBU 11.2) -> 13.0 (NBU 11.0) -> 12.0 (NBU 10.5) -> 10.0 (NBU 10.0-10.4)
-  apiKey: "my-api-key"
-  contentType: "application/vnd.netbackup+json" # Version will be added automatically
-  insecureSkipVerify: false # Set to true to skip TLS certificate verification (not recommended for production)
+  logName: "stdout"
 
+nbuservers:
+  - site: "primary"
+    scheme: "https"
+    uri: "/netbackup"
+    host: "master.my.domain"
+    port: "1556"
+    # apiVersion: omitted — auto-detects highest supported version
+    apiKey: "my-api-key"
+    insecureSkipVerify: false
 
-# Optional: OpenTelemetry distributed tracing configuration
+# Optional: OpenTelemetry distributed tracing
 # opentelemetry:
-#     enabled: true
-#     endpoint: "localhost:4317"
-#     insecure: true
-#     samplingRate: 0.1
+#   enabled: true
+#   endpoint: "localhost:4317"
+#   insecure: true
+#   samplingRate: 0.1
 
-# Optional: opt-in NetBackup 11.2 metric collectors (all default to disabled)
+# Optional: opt-in metric collectors (all default to disabled).
+# alerts/malware/catalog/slo require NetBackup 11.2 (API version 14.0).
 collectors:
   alerts:  { enabled: false }
   malware: { enabled: false }
   catalog: { enabled: false }
   slo:     { enabled: false }
+  # Tape drives, media pools, partially-full volume pools and disk-pool volumes.
+  # Drive/media metrics work on NBU 10.0+; volume-pool and disk-pool need 10.5+.
+  tape:    { enabled: false }
+  # Per-client backup compliance + lifecycle (BACKUP/DUPLICATION/IMPORT).
+  # An empty allowlist emits nothing.
+  perClient:
+    enabled: false
+    allowlist: []
