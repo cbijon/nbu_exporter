@@ -1,24 +1,7 @@
 {
   "data": [
-    {
-      "id": "0",
-      "type": "tapeVolumePool",
-      "attributes": {
-        "volumePoolName": "NetBackup",
-        "description": "default pool",
-        "partiallyFullMedia": 3,
-        "poolType": "SCRATCH"
-      }
-    },
-    {
-      "id": "1",
-      "type": "tapeVolumePool",
-      "attributes": {
-        "volumePoolName": "CatalogBackup",
-        "description": "catalog pool",
-        "partiallyFullMedia": 0,
-        "poolType": "NONE"
-      }
-    }
-  ]
+    {"id": "1", "type": "tapeVolumePool", "attributes": {"volumePoolName": "NetBackup", "description": "default pool", "partiallyFullMedia": 3, "poolType": "REGULAR_MEDIA_POOL"}},
+    {"id": "2", "type": "tapeVolumePool", "attributes": {"volumePoolName": "Scratch", "description": "scratch pool", "partiallyFullMedia": 0, "poolType": "SCRATCH_MEDIA_POOL"}}
+  ],
+  "meta": {"pagination": {"limit": 100, "next": "", "prev": "", "rangeTruncated": false}}
 }

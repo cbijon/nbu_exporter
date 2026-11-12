@@ -9,11 +9,34 @@
         "storageCategory": "MSDP",
         "diskPoolState": "UP",
         "diskVolumes": [
-          { "name": "vol-a", "id": "a", "state": "UP" },
-          { "name": "vol-b", "id": "b", "state": "UP" },
-          { "name": "vol-c", "id": "c", "state": "DOWN" }
+          {
+            "name": "vol-a",
+            "id": "a",
+            "state": "UP"
+          },
+          {
+            "name": "vol-b",
+            "id": "b",
+            "state": "UP"
+          },
+          {
+            "name": "vol-c",
+            "id": "c",
+            "state": "DOWN"
+          }
         ]
       }
     }
-  ]
+  ],
+  "meta": {
+    "pagination": {
+      "count": 1,
+      "pages": 1,
+      "page": 1,
+      "offset": 0,
+      "limit": 100,
+      "first": 0,
+      "last": 0
+    }
+  }
 }

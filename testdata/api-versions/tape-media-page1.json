@@ -1,6 +1,7 @@
 {
   "data": [
-    {"attributes": {"barcode": "ABC001", "mediaType": "HCART", "volumePool": "NetBackup", "mediaStatus": "ACTIVE", "robotType": "TLD", "robotNumber": 0}},
-    {"attributes": {"barcode": "ABC002", "mediaType": "HCART", "volumePool": "NetBackup", "mediaStatus": "ACTIVE", "robotType": "TLD", "robotNumber": 0}}
-  ]
+    {"type": "tapeMedia", "id": "ABC001", "attributes": {"barcode": "ABC001", "mediaType": "HCART", "volumePool": "NetBackup", "mediaStatus": "ACTIVE", "robot": {"robotType": "TLD", "robotNumber": 0, "robotHost": "ms1.example.com"}}},
+    {"type": "tapeMedia", "id": "ABC002", "attributes": {"barcode": "ABC002", "mediaType": "HCART", "volumePool": "NetBackup", "mediaStatus": "ACTIVE", "robot": {"robotType": "TLD", "robotNumber": 0, "robotHost": "ms1.example.com"}}}
+  ],
+  "meta": {"pagination": {"limit": 2, "next": "ABC002", "prev": "", "rangeTruncated": false}}
 }
