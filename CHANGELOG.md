@@ -16,7 +16,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `nbuservers[].host` / `apiKey` `${VAR}` references are expanded (upstream only expanded the legacy `nbuserver:` block), with the empty-credential guard per site.
 - Alerting: `NbuBackupSuccessRateLow` never fired when *every* backup failed (empty numerator) and was global; it is now per site with a zero fallback. `NbuJobsQueuedSustained`, `NbuStorageAlmostFull`/`Warning` are per site (same STU name on two masters no longer merges). `NbuInterSiteDivergence` now also flags a reachable site with no BACKUP job at all. New `nbu.rules_test.yml`; CI runs promtool on all rule files.
 - Dashboards: panels with several queries shared refId `A` (Grafana dropped/errored them — e.g. Job duration p50/p95, Used capacity); refIds are now assigned by the generator and validated. Success-rate / failed / DOWN / UNKNOWN / infected stats show 0 instead of "No data" when the underlying data exists; bar charts are labelled per series; lifecycle duration quantiles no longer apply `rate()` to the per-window histogram; compliance pie counts compliant vs non-compliant clients; tables hide `instance`/`job`.
+- `/metrics` returned HTTP 500 — losing every series of every site — whenever one series was emitted twice (a drive/pool/volume repeated across pages, a duplicated allowlist entry). Duplicates are now dropped centrally with a warning, and the tape collector dedupes drives (name+host), media (barcode) and pools (name).
+- Per-client lifecycle (`nbu_client_last_job_success_seconds`) only knew successes seen in the scraping window since the exporter started: after any restart a client whose last tape copy/replication was older than the window had no series, so the overdue panels and `NbuClientNoRecentTapeCopy`/`NoRecentReplication` could never fire for it. Each cycle now looks up the latest successful BACKUP/DUPLICATION/IMPORT per allowlisted client (`sort=-endTime`, `limit=1`).
+- Config reload (SIGHUP / file watcher) failed on every `nbuservers:` config (`${VAR}` left literal; used a stale copy of the env expansion) and only compared the first server's host/port, so adding a site went unnoticed. It now resolves exactly like startup and warns to RESTART on any site-list change. Docs no longer claim reload applies changes (the collection loop keeps its startup config).
+- Cursor pagination stops if the server echoes the same cursor (previously looped until the context deadline).
+- `nbu_storage_max_concurrent_jobs` falls back to `maxConcurrentDrives` for tape storage units (spec `oneOf`: tape units have no `maxConcurrentJobs`).
+- Helm chart default config: `nbuservers:` format, no `apiVersion: 13.0` pin, dead `domain`/`contentType` fields removed.
 - Deployment: root `config.yaml` listens on `0.0.0.0` (with `localhost` Prometheus could not scrape the container while the healthcheck stayed green); compose files forward `NBU2_*` for the second master and `NBU1_SKIP_CERTIFICATE` (ghcr); `NBU_TAG`/`NBU_IMAGE_OWNER` select the GHCR image; GoReleaser publishes under the repository owner (forks can release); the phantom `otel-collector` scrape job is commented out.
+
+### Added
+
+- `scripts/gen_spec_samples.py` + `testdata/spec-samples/`: one fully-typed response per decoded endpoint generated from the Veritas OpenAPI specs; `internal/models/spec_samples_test.go` decodes them with the real models and checks every field the collectors read is populated.
+- Docs: trusting the NetBackup CA with `SSL_CERT_DIR` (TLS verification stays on), with commented `nbu-ca` volume/env in `docker-compose.yml`.
 
 ### Changed
 

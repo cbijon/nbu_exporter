@@ -29,7 +29,7 @@ The `nbu_job_duration_seconds` histogram covers completed jobs only (those with 
 |--------|--------|-------------|
 | `nbu_disk_bytes` | `name`, `type`, `size` | Storage unit capacity; `size` is `free` or `used` |
 | `nbu_disk_capacity_bytes` | `name`, `type` | Authoritative total capacity reported by the API |
-| `nbu_storage_max_concurrent_jobs` | `name`, `type` | Maximum concurrent jobs the unit accepts |
+| `nbu_storage_max_concurrent_jobs` | `name`, `type` | Maximum concurrent jobs the unit accepts (`maxConcurrentJobs`; tape units report `maxConcurrentDrives`) |
 | `nbu_storage_max_fragment_size_bytes` | `name`, `type` | Maximum fragment size in bytes |
 | `nbu_storage_info` | `name`, `type`, `subtype`, `is_cloud`, `worm_capable`, `use_worm`, `replication_capable`, `instant_access` | Storage unit capabilities (value always `1`) |
 

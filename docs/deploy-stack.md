@@ -76,8 +76,9 @@ to `NBU2_*` variables. To add the second master after a single-site deployment:
    like — each `site` value becomes a label on every metric; keep it short, e.g. `paris`).
 2. Add to `.env`: `NBU2_HOSTNAME`, `NBU2_APIKEY` (an API key generated **on that
    master**) and, if needed, `NBU2_SKIP_CERTIFICATE=true`.
-3. `docker compose up -d` (recreates the exporter with the new variables) — or send
-   `SIGHUP` if only `config.yaml` changed and the variables were already present.
+3. `docker compose up -d` — this recreates the exporter container with the new
+   variables. A restart is required: sites are built once at startup, and a config
+   reload (SIGHUP or file change) only logs that the server list changed.
 
 `docker-compose.yml` forwards `NBU1_*` and `NBU2_*` into the container (the `.env` file
 itself is not mounted). For a third master, add `NBU3_*` lines to the `environment:`
@@ -225,7 +226,35 @@ Each exporter tags its metrics with `site` from its config. Prometheus aggregate
 
 ---
 
-## 10. Production hardening
+## 10. TLS: trust the NetBackup CA (keep certificate verification on)
+
+The master's REST API (port 1556) presents a certificate signed by the NetBackup CA,
+which is not in the system trust store. Instead of `insecureSkipVerify: true`, give the
+exporter that CA — no config option needed, Go reads `SSL_CERT_DIR` on Linux:
+
+```bash
+mkdir -p nbu-ca
+# Fetch the issuing CA from the master (last certificate of the chain it presents):
+openssl s_client -connect master.my.domain:1556 -showcerts </dev/null 2>/dev/null \
+  | awk '/BEGIN CERT/{c++; p=1} p{print > ("nbu-ca/cert" c ".pem")} /END CERT/{p=0}'
+for f in nbu-ca/*.pem; do openssl x509 -in "$f" -noout -subject -issuer; done
+```
+
+Keep the certificate whose subject is the CA (subject = issuer, or the last one of the
+chain) and delete the master's own leaf certificate. If the master only sends its leaf
+(a single file whose issuer is not itself), get the NetBackup CA certificate from the
+backup team / the primary server (NetBackup web service trust store, typically
+`/usr/openv/var/webtruststore/cacert.pem`) and put it in `nbu-ca/`.
+
+Then uncomment the two `nbu-ca` lines in `docker-compose.yml` (volume + `SSL_CERT_DIR`),
+set `NBU1_SKIP_CERTIFICATE=false` and recreate: `docker compose up -d`. Both masters'
+CAs can live in the same directory. The `host` you configure must match a name in the
+master's certificate (use its FQDN, not an IP, unless the certificate lists the IP).
+
+Verified: with the CA directory the exporter connects with verification enabled; without
+it the collection fails with `x509: certificate signed by unknown authority`.
+
+## 11. Production hardening
 
 ```yaml
 # config.yaml — recommended for production

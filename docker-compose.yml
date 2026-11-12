@@ -10,6 +10,8 @@ services:
     volumes:
       # Mount configuration file (read-only)
       - ./config.yaml:/etc/nbu_exporter/config.yaml:ro
+      # NetBackup CA (keep TLS verification on) — see docs/deploy-stack.md §10:
+      # - ./nbu-ca:/etc/nbu_exporter/ca:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:9440/livez"]
@@ -39,6 +41,8 @@ services:
       - NBU2_HOSTNAME=${NBU2_HOSTNAME:-}
       - NBU2_APIKEY=${NBU2_APIKEY:-}
       - NBU2_SKIP_CERTIFICATE=${NBU2_SKIP_CERTIFICATE:-false}
+      # Trust the mounted NetBackup CA in addition to the system roots (§10):
+      # - SSL_CERT_DIR=/etc/ssl/certs:/etc/nbu_exporter/ca
     networks:
       - monitoring
 
