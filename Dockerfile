@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM golang:1.26 AS builder
+FROM docker.io/library/golang:1.27.4 AS builder
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ COPY . .
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o nbu_exporter .
 
 # Stage 2: Runtime
-FROM alpine:latest
+FROM docker.io/library/alpine:latest
 
 # Create the runtime user and log dir. These are busybox builtins (no network).
 RUN adduser -D -u 10001 nbu && \
@@ -33,6 +33,12 @@ COPY config.yaml /etc/nbu_exporter/config.yaml
 
 # Expose the default port (configurable via config.yaml)
 EXPOSE 9440
+
+# /livez never depends on target reachability or the collection cycle, so it
+# can never flag a healthy process as down over an unreachable NetBackup
+# master (see ADR-0005 / architecture.md "Health probes").
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget --quiet --tries=1 --spider http://127.0.0.1:9440/livez || exit 1
 
 USER nbu
 

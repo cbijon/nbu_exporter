@@ -20,7 +20,7 @@ This guide deploys nbu_exporter, Prometheus, and Grafana as a single docker-comp
 ## 1. Get the repo
 
 ```bash
-git clone https://github.com/cbijon/nbu_exporter.git
+git clone https://github.com/fjacquet/nbu_exporter.git
 cd nbu_exporter
 ```
 
@@ -110,12 +110,19 @@ Open Grafana at `http://localhost:3000` → Dashboards → Browse → **NetBacku
 
 ## 6. Alerting rules
 
-Prometheus loads two rule files automatically:
+Prometheus loads four rule files automatically (mounted into `/etc/prometheus/rules/`
+by docker-compose and listed under `rule_files:` in `prometheus.yml`):
 
 | File | Alerts |
 |---|---|
-| `deploy/prometheus/nbu.rules.yml` | Core: exporter down, scrape failures, storage full |
-| `deploy/prometheus/nbu-lifecycle.rules.yml` | Per-client compliance, tape health, inter-site divergence |
+| `deploy/prometheus/nbu.rules.yml` | Core: exporter down, scrape failures, metrics stale, storage full |
+| `deploy/prometheus/rules-perclient.yml` | Per-client compliance: backup staleness, tape-copy / replication freshness, failure rate |
+| `deploy/prometheus/rules-tape.yml` | Tape & disk health: drive down/disabled, scratch-pool low, disk-pool volume degraded |
+| `deploy/prometheus/rules-multisite.yml` | Inter-site backup-volume divergence |
+
+The per-client, tape, and multi-site rules reference the opt-in `nbu_client_*` and
+`nbu_tape_*` / `nbu_disk_pool_*` metrics — enable the matching collectors (see §7) for
+them to fire.
 
 To send alerts, add an Alertmanager config to `prometheus.yml`:
 
@@ -130,11 +137,14 @@ Key alerts:
 
 | Alert | Default threshold | Severity |
 |---|---|---|
-| `NbuClientNoRecentBackup` | 25 h without successful backup | critical |
+| `NbuClientBackupStale` | 25 h without successful backup | warning |
+| `NbuClientBackupCritical` | 48 h without successful backup | critical |
 | `NbuClientNoRecentTapeCopy` | 26 h without DUPLICATION | warning |
 | `NbuClientNoRecentReplication` | 28 h without IMPORT | warning |
 | `NbuTapeDriveDown` | ≥1 drive DOWN for 15 min | warning |
+| `NbuTapeDriveDisabled` | ≥1 drive DISABLED for 30 min | warning |
 | `NbuTapePoolScratchLow` | Scratch pool < 5 volumes | warning |
+| `NbuDiskPoolVolumeDegraded` | disk-pool volume not UP for 10 min | warning |
 | `NbuInterSiteDivergence` | Site < 30 % of cross-site average | warning |
 
 ---

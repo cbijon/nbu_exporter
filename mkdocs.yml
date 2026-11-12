@@ -6,6 +6,8 @@ repo_name: fjacquet/nbu_exporter
 
 theme:
   name: material
+  favicon: assets/favicon.png
+  logo: assets/logo.png
   palette:
     - scheme: default
       primary: indigo
@@ -54,12 +56,17 @@ nav:
       - NetBackup 11.0: netbackup-11-migration.md
       - API 10.5: api-10.5-migration.md
   - Deployment:
+      - Full Stack (docker-compose): deploy-stack.md
       - Verification: deployment-verification.md
       - Quick Reference: deployment-quick-reference.md
       - Docker: docker.md
+      - systemd: systemd.md
       - Dashboards: dashboards.md
   - Configuration Examples: config-examples/README.md
   - Architecture Decisions:
       - Overview: adr/README.md
       - ADR-0001 Tooling Baseline Sync: adr/0001-tooling-baseline-sync-with-pflex.md
   - Changelog: changelog.md
+
+extra:
+  version: v4.0.1

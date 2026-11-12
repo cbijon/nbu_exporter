@@ -20,7 +20,7 @@ nbuserver:
     apiVersion: "13.0"  # Optional: auto-detects if omitted
     apiKey: "your-api-key-here"
     contentType: "application/vnd.netbackup+json; version=13.0"
-    insecureSkipVerify: false
+    insecureSkipVerify: false  # or "${NBU1_SKIP_CERTIFICATE}" — see Environment Variables below
 
 # Optional: OpenTelemetry distributed tracing
 # opentelemetry:
@@ -77,6 +77,11 @@ the host), so existing single-site configurations keep working unchanged. See
 The `host` and `apiKey` fields in the `nbuserver` section support `${VAR}` interpolation.
 At startup the exporter expands every `${VAR}` reference and fails loudly if a variable is not set.
 
+`insecureSkipVerify` accepts either a native boolean (`insecureSkipVerify: true`) or the same
+`${VAR}` interpolation (`insecureSkipVerify: "${NBU1_SKIP_CERTIFICATE}"`), resolved at startup
+alongside `host`/`apiKey`. This lets you toggle TLS verification per environment (e.g. a lab
+override) without editing `config.yaml`.
+
 `nbu_exporter` loads a `.env` file natively at startup — you do not need a shell wrapper or
 `export` statements. It looks for `.env` in the working directory first, then in the same
 directory as `config.yaml`. Already-set environment variables always win: values in `.env`
@@ -116,6 +121,45 @@ nbuservers:
 
 The `.env` / `NBU1_*` naming is a single-server convenience; there is no limit on variable names.
 
+### API keys with special characters
+
+The API key is sent verbatim as the value of the HTTP `Authorization` header — it is
+never URL-encoded and never placed in a request body, so any character is safe end to
+end. The only place quoting matters is **parsing at load time**, and it differs by where
+you put the key:
+
+| Source | Rule |
+|---|---|
+| `.env`, single-quoted `'…'` | Fully literal — no `$` expansion, no `\` escapes, no `#` comment. Best default. Cannot contain a literal `'`. |
+| `.env`, double-quoted `"…"` | Expands `$VAR`/`${VAR}` and processes `\` escapes. `$`, `\`, `"` are special — write `\$`, `\\`, `\"`. |
+| `.env`, unquoted | `$VAR` expands; a ` #` (space-hash) starts a comment; a value **starting** with `'`/`"` is treated as quoted. |
+| `config.yaml` inline | Only the `${NAME}` and `${NAME:-default}` tokens are interpolated (`os.LookupEnv`), so a literal key containing either form is treated as an env ref. Prefer referencing an env var. |
+
+For quotes inside the key specifically: use double quotes to include a `'`, single
+quotes to include a `"`. NetBackup API keys are token strings (dot-separated,
+base64url-style segments), so in practice they contain none of these characters and an
+unquoted value works fine. When referencing an env var from `config.yaml`
+(`apiKey: "${NBU1_APIKEY}"`) the value is inserted verbatim and never re-scanned, so the
+env var itself may contain `$`, `${…}`, or any character.
+
+## Fallback values: `${VAR:-default}`
+
+A bare `${VAR}` **fails at startup** when the variable is unset — misconfiguration should
+be loud rather than authenticate with an empty secret. Where a safe default exists, write
+`${VAR:-default}` instead: the reference then never errors, falling back when the variable
+is unset *or* empty, exactly as in the shell and in `docker-compose.yml`. That is why the
+shipped `config.yaml` can be env-driven and still start out of the box:
+
+```yaml
+insecureSkipVerify: "${NBU1_SKIP_CERTIFICATE:-false}"
+```
+
+`false` is this exporter's original shipped default, so a host that never exported
+`NBU1_SKIP_CERTIFICATE` behaves exactly as before.
+
+Use it for settings, not for secrets — a `${NBU1_APIKEY:-}` would silently turn a missing
+password into an empty one.
+
 ## Server Section
 
 | Field | Type | Required | Description |
@@ -143,7 +187,7 @@ the same fields plus a required, unique `site` (see [Multiple Sites](#multiple-s
 | `apiVersion` | string | No | API version (14.0, 13.0, 12.0, or 10.0). Auto-detects if omitted. |
 | `apiKey` | string | Yes | NetBackup API key |
 | `contentType` | string | Yes | API content type header |
-| `insecureSkipVerify` | bool | No | Skip TLS certificate verification |
+| `insecureSkipVerify` | bool or `${VAR}` | No | Skip TLS certificate verification. Native bool or a `${VAR}` reference (e.g. `${NBU1_SKIP_CERTIFICATE}`) resolved at startup; defaults to `false`. |
 
 ## OpenTelemetry Section (Optional)
 

@@ -37,7 +37,7 @@ Before upgrading, ensure you have:
 1. **NetBackup Server**: Version 10.5 or later
 2. **API Access**: Valid API key with appropriate permissions
 3. **Current Exporter**: Backup your current configuration and binary
-4. **Go Environment** (if building from source): Go 1.23.4 or later
+4. **Go Environment** (if building from source): Go 1.27.4 or later
 
 ### Checking Your NetBackup Version
 
@@ -266,8 +266,8 @@ nbuserver:
 ```bash
 curl http://localhost:9440/health
 
-# Expected output:
-# {"status":"healthy"}
+# Expected output (always 200):
+# {"sites":[{"site":"...","ok":true,"last_scrape":"...","err":""}]}
 ```
 
 ### 2. Check Metrics Endpoint

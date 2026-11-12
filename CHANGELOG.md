@@ -7,6 +7,136 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Build with Go 1.27.2 to fix the Go 1.27.1 standard library vulnerabilities flagged by govulncheck (GO-2026-6603, GO-2026-6605, GO-2026-6607, GO-2026-6608, GO-2026-6610, GO-2026-6611, GO-2026-6613, GO-2026-6617 in `net/http`, `crypto/tls`, `mime/multipart`).
+- Update dependencies with `go get -u ./...`: `golang.org/x/net` v0.59.0 -> v0.60.0, `golang.org/x/sys` v0.48.0 -> v0.49.0, `golang.org/x/sync` v0.23.0 -> v0.24.0, `github.com/prometheus/client_golang` v1.24.1 -> v1.25.0, `genproto` googleapis api/rpc refreshed. `google.golang.org/grpc` kept at 1.83.2 per the existing note.
+- Update the golangci-lint pin to v2.14.0, which type-checks against the Go 1.27.2 standard library (v2.13.2 cannot).
+
+## [5.3.3] - 2026-10-03
+
+### Added
+
+- CI: security workflow added, calling the shared `go-security` reusable workflow from `fjacquet/ci`.
+
+### Changed
+
+- Go 1.26.6 -> 1.27.1 (`go` directive in `go.mod`, Dockerfile builder image).
+- Makefile tool pins: golangci-lint v2.12.2 -> v2.13.2, goreleaser v2.16.0 -> v2.18.0, govulncheck `latest` -> v1.8.0.
+- Dependencies refreshed with `go get -u ./...`: OpenTelemetry 1.46.0 -> 1.47.0,
+  `prometheus/common` 0.71.0 -> 0.72.0.
+- `google.golang.org/grpc` kept at 1.83.2: 1.84.0 is affected by **GO-2026-6443**.
+
+## [5.3.2] - 2026-09-13
+
+### Security
+
+- `google.golang.org/grpc` 1.83.0 -> 1.83.2, fixing **GHSA-vp52-pcj8-j9qc** and
+  **GHSA-2v4p-qf9q-27wj** (HIGH), pulled in with an `otel` 1.45.0 -> 1.46.0 refresh.
+
+## [5.3.0] - 2026-08-15
+
+### Added
+
+- `${VAR:-default}` fallbacks in config env references, ported from `pscale_exporter`.
+  Shell / docker-compose semantics: the variable falls back when unset *or* empty, and
+  such a reference never aborts startup. A bare `${VAR}` still fails loudly when the
+  variable is *unset*; an exported-but-empty one expands to the empty string, as it
+  always has.
+  Credential fields are stricter: a field written as an env reference that resolves to
+  nothing is now rejected, so a stray `NBU1_PASSWORD=` line fails at startup instead
+  of authenticating with an empty credential. The error names only the config field:
+  config-load failures are logged, and every part of a credential field — the variable
+  name included — is potentially sensitive. The shipped `config.yaml` now uses
+  `insecureSkipVerify: "${NBU1_SKIP_CERTIFICATE:-false}"`, so the setting is env-driven out of the box
+  yet still resolves to `false` — this repo's original shipped default — on a host that
+  never exported the variable.
+
+## [5.1.0] - 2026-08-01
+
+### Added
+
+- `HEALTHCHECK` added to the published Docker image, checking `/livez`. See
+  ADR-0006.
+
+## [5.0.0] - 2026-08-01
+
+### Added
+
+- `/livez` and `/readyz`: probe endpoints that always answer 200, with no
+  dependency on site reachability or the collection cycle. See ADR-0005.
+
+### Changed
+
+- `/health` always answers 200, never 503, and its body is now JSON
+  (`sites: [{site, ok, last_scrape, err}]`) instead of plain text. It no
+  longer makes a live NetBackup API call — it reads the same cached
+  snapshot `/metrics` reads. See ADR-0005. **Breaking**: anything parsing
+  the old plain-text body or gating on the old 503 status needs updating.
+- The chart's default `livenessProbe`/`readinessProbe` now point at
+  `/livez`/`/readyz` instead of `/health`.
+
+## [4.1.0] - 2026-07-14
+
+### Added
+
+- **Env-driven TLS verification skip (`NBU1_SKIP_CERTIFICATE`)** — the per-server `insecureSkipVerify` setting now accepts either a native YAML boolean or a `${VAR}` environment reference (e.g. `${NBU1_SKIP_CERTIFICATE}`), resolved at startup, matching the existing `${NBU1_*}` pattern. The active default is unchanged; the env form is opt-in via a documented comment in `config.yaml`.
+
+## [4.0.4] - 2026-07-03
+
+### Added
+
+- **`nbu_exporter_build_info` metric**: a constant `1` gauge carrying the running
+  exporter `version` and `goversion` labels, so a `/metrics` scrape reveals exactly which
+  build is deployed. The version comes from `-ldflags "-X main.version=..."` (GoReleaser
+  injects the release tag; the Makefile injects `git describe`; local `go build` reports
+  `dev`). Unlike the per-site collectors, this metric carries no `site` label — it describes
+  the exporter process itself ([#53](https://github.com/fjacquet/nbu_exporter/pull/53)).
+
+## [4.0.3] - 2026-07-03
+
+### Added
+
+- **systemd deployment**: a packaged unit file, environment file, and accompanying guide
+  for running the exporter under systemd ([#52](https://github.com/fjacquet/nbu_exporter/pull/52)).
+
+## [4.0.2] - 2026-07-01
+
+### Added
+
+- Documentation on handling special characters in the API key value.
+- MkDocs now uses the project brand icon as its favicon and logo
+  ([#50](https://github.com/fjacquet/nbu_exporter/pull/50), [#51](https://github.com/fjacquet/nbu_exporter/pull/51)).
+
+## [4.0.1] - 2026-06-20
+
+### Added
+
+- **Full-stack deployment guide** (`docs/deploy-stack.md`, thanks **@cbijon**): end-to-end
+  docker-compose walkthrough — API-key generation, single- and multi-site config, verification,
+  alerting, optional collectors, and production hardening. Linked from the README and the docs
+  "Deployment" nav. The README was also rewritten around the docker-compose stack as the
+  recommended path (feature list, inline config example, dashboards table)
+  ([#45](https://github.com/fjacquet/nbu_exporter/pull/45)).
+
+### Changed
+
+- README quickstart now points at `.env` rather than `config.yaml`.
+- CI migrated to the `fjacquet/ci` reusable (make-based) workflows, and the `security`
+  workflow is now advisory to match the central default
+  ([#46](https://github.com/fjacquet/nbu_exporter/pull/46), [#47](https://github.com/fjacquet/nbu_exporter/pull/47)).
+
+### Fixed
+
+- **Per-client, tape, and multi-site alerting rules are now actually loaded by the bundled
+  stack.** `rules-perclient.yml`, `rules-tape.yml`, and `rules-multisite.yml` shipped with unit
+  tests but were never wired into `prometheus.yml` (`rule_files:`) or mounted by `docker-compose`
+  — only `nbu.rules.yml` was. All four files are now mounted into `/etc/prometheus/rules/` and
+  listed under `rule_files:`, so their alerts evaluate out of the box
+  ([#45](https://github.com/fjacquet/nbu_exporter/pull/45)).
+- Release packaging: corrected the Homebrew cask token environment variable and added a
+  `skip_upload` guard ([#49](https://github.com/fjacquet/nbu_exporter/pull/49)).
+
 ## [4.0.0] - 2026-06-17
 
 ### Added

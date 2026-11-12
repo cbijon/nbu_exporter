@@ -29,12 +29,14 @@ A Prometheus exporter that collects backup job statistics, storage metrics, tape
 Deploy the exporter, Prometheus, and Grafana with one command:
 
 ```bash
-git clone https://github.com/cbijon/nbu_exporter.git
+git clone https://github.com/fjacquet/nbu_exporter.git
 cd nbu_exporter
 
-# Fill in your NBU master hostname and API key
+# Set your NBU master hostname + API key in .env — the bundled config.yaml
+# reads them via ${NBU1_HOSTNAME} / ${NBU1_APIKEY} (no need to edit config.yaml
+# for a basic single-site setup; see Configuration below to customise).
 cp .env.example .env
-# Edit config.yaml with your nbuserver details (see Configuration below)
+$EDITOR .env
 
 docker compose up -d
 ```
