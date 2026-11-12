@@ -117,6 +117,8 @@ docker_manifests:
       - 'ghcr.io/{{ envOrDefault "GITHUB_REPOSITORY_OWNER" "fjacquet" | tolower }}/nbu_exporter:{{ .Version }}-amd64'
       - 'ghcr.io/{{ envOrDefault "GITHUB_REPOSITORY_OWNER" "fjacquet" | tolower }}/nbu_exporter:{{ .Version }}-arm64'
   - name_template: 'ghcr.io/{{ envOrDefault "GITHUB_REPOSITORY_OWNER" "fjacquet" | tolower }}/nbu_exporter:latest'
+    # A pre-release tag (v1.2.3-rc1) must not move :latest.
+    skip_push: auto
     image_templates:
       - 'ghcr.io/{{ envOrDefault "GITHUB_REPOSITORY_OWNER" "fjacquet" | tolower }}/nbu_exporter:{{ .Version }}-amd64'
       - 'ghcr.io/{{ envOrDefault "GITHUB_REPOSITORY_OWNER" "fjacquet" | tolower }}/nbu_exporter:{{ .Version }}-arm64'
@@ -144,6 +146,10 @@ homebrew_casks:
           if OS.mac?
             system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/nbu_exporter"]
           end
+
+# Tags with a pre-release suffix (-rc1, -beta…) are published as GitHub pre-releases.
+release:
+  prerelease: auto
 
 changelog:
   sort: asc
