@@ -1,0 +1,79 @@
+{
+ "data": [
+  {
+   "attributes": {
+    "application": "NETBACKUP",
+    "barcode": "sample",
+    "cleaningsRemaining": 1,
+    "conflicts": 1,
+    "created": "2026-11-12T10:00:00.000Z",
+    "dateExpiration": "2026-11-12T10:00:00.000Z",
+    "dateVaulted": "2026-11-12T10:00:00.000Z",
+    "description": "sample",
+    "firstMount": "2026-11-12T10:00:00.000Z",
+    "images": 1.5,
+    "kiloBytes": 1.5,
+    "lastMount": "2026-11-12T10:00:00.000Z",
+    "lastRead": "2026-11-12T10:00:00.000Z",
+    "lastWriteHost": "sample",
+    "lastWritten": "2026-11-12T10:00:00.000Z",
+    "maxMounts": 1,
+    "mediaOwner": "sample",
+    "mediaStatus": "sample",
+    "mediaType": "HCART",
+    "mounts": 1,
+    "numberOfRestores": 1.5,
+    "originHost": "sample",
+    "retentionPeriod": 1.5,
+    "returnDate": "2026-11-12T10:00:00.000Z",
+    "robot": {
+     "robotHost": "sample",
+     "robotNumber": 1,
+     "robotType": "NA"
+    },
+    "serverGroup": "sample",
+    "sessionId": 1,
+    "slot": 1,
+    "timeAssigned": "2026-11-12T10:00:00.000Z",
+    "validImages": 1.5,
+    "vaultContainerId": "sample",
+    "vaultName": "sample",
+    "vaultSlot": 1,
+    "volumeExpiration": "2026-11-12T10:00:00.000Z",
+    "volumeGroup": "sample",
+    "volumePool": "sample"
+   },
+   "id": "sample",
+   "links": {
+    "self": {
+     "href": "sample"
+    }
+   },
+   "type": "volumeInfo"
+  }
+ ],
+ "links": {
+  "pagination": {
+   "first": {
+    "href": "sample"
+   },
+   "next": {
+    "href": "sample"
+   },
+   "prev": {
+    "href": "sample"
+   },
+   "self": {
+    "href": "sample"
+   }
+  }
+ },
+ "meta": {
+  "pagination": {
+   "limit": 1,
+   "next": "sample",
+   "prev": "sample",
+   "rangeTruncated": true
+  }
+ }
+}

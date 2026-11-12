@@ -1,0 +1,3867 @@
+{
+ "data": [
+  {
+   "attributes": {
+    "capabilities": [
+     "sample"
+    ],
+    "description": "sample",
+    "name": "sample",
+    "policyDefinition": {
+     "policyBigData": {
+      "backupSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "hardware": "sample",
+        "hostName": "sample"
+       }
+      ],
+      "policyAttributes": {
+       "active": true,
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "dataClassification": "sample",
+       "disableClientSideDeduplication": true,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "generationId": 1,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "mediaOwner": "sample",
+       "priority": 1,
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useMultipleMSDPNodes": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "acceleratorForcedRescan": true,
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Cumulative Incremental Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "snapshotOnly": true,
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true,
+        "syntheticBackup": true
+       }
+      ]
+     },
+     "policyCloud": {
+      "backupSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "hardware": "sample",
+        "hostName": "sample"
+       }
+      ],
+      "policyAttributes": {
+       "active": true,
+       "applicationDiscovery": true,
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "backupHost": "sample",
+       "blockIncremental": true,
+       "cloudAdvancedOptions": {
+        "assetType": "sample",
+        "changeDataCapture": true,
+        "excludeBackupSelection": {
+         "diskSelection": "BOOT_DISK",
+         "diskTagKey": "sample",
+         "diskTagValue": "sample"
+        },
+        "granularRestore": true,
+        "mountPath": "sample",
+        "paasProtection": true,
+        "paasProtectionSnapOnly": true,
+        "serviceType": "AZURE_MYSQL",
+        "stagingStoragePath": "sample"
+       },
+       "cloudProvider": "sample",
+       "cloudProviderAttributes": {
+        "createRegionalSnap": true,
+        "resourceGroup": {
+         "configurationName": "sample",
+         "name": "sample",
+         "region": "sample",
+         "subscriptionId": "sample"
+        }
+       },
+       "dataClassification": "sample",
+       "effectiveDateUTC": "2026-11-12T10:00:00.000Z",
+       "generationId": 1,
+       "individualFileRestore": true,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "mediaOwner": "sample",
+       "priority": 1,
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useAccelerator": true,
+       "useMultipleMSDPNodes": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "acceleratorForcedRescan": true,
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Fail All Copies",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Full Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "snapshotOnly": true,
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true,
+        "syntheticBackup": true
+       }
+      ]
+     },
+     "policyCloudObjectStore": {
+      "backupSelections": {
+       "cloudObjectSelections": {
+        "cloudObjectStoreAccount": "sample",
+        "selections": [
+         {
+          "buckets": [
+           "sample"
+          ],
+          "includeAllObjects": true,
+          "name": "sample",
+          "query": "sample"
+         }
+        ]
+       }
+      },
+      "policyAttributes": {
+       "active": true,
+       "alternateClientHostname": "sample",
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "backupHost": "sample",
+       "blockIncremental": true,
+       "checkpointIntervalMinutes": 1,
+       "clientCompress": true,
+       "clientEncrypt": true,
+       "collectBareMetalRestoreInfo": true,
+       "collectTrueImageRestoreInfo": "Collect true image restore information",
+       "crossMountPoints": true,
+       "dataClassification": "sample",
+       "dataMoverMachine": "Unknown",
+       "disableClientSideDeduplication": true,
+       "downloadStagingPath": "sample",
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "enableDynamicMultiStreaming": true,
+       "followNFSMounts": true,
+       "generationId": 1,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "maxStreamsPerSelection": 1,
+       "mediaOwner": "sample",
+       "offhostBackup": true,
+       "priority": 1,
+       "retainSnapshot": true,
+       "scaleOutServer": "sample",
+       "skipPropertyChecksum": true,
+       "snapshotBackup": true,
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useAccelerator": true,
+       "useMultipleDataStreams": true,
+       "useMultipleMSDPNodes": true,
+       "useReplicationDirector": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "acceleratorForcedRescan": true,
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Cumulative Incremental Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "snapshotOnly": true,
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true,
+        "syntheticBackup": true
+       }
+      ]
+     },
+     "policyDB2": {
+      "backupSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "hardware": "sample",
+        "hostName": "sample"
+       }
+      ],
+      "policyAttributes": {
+       "active": true,
+       "alternateClientHostname": "sample",
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "blockIncremental": true,
+       "clientCompress": true,
+       "clientEncrypt": true,
+       "dataClassification": "sample",
+       "dataMoverMachine": "Unknown",
+       "disableClientSideDeduplication": true,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "generationId": 1,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "mediaOwner": "sample",
+       "offhostBackup": true,
+       "priority": 1,
+       "retainSnapshot": true,
+       "snapshotBackup": true,
+       "snapshotMethod": "sample",
+       "snapshotMethodArgs": "sample",
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useMultipleMSDPNodes": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Automatic Full Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "snapshotOnly": true,
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true,
+        "syntheticBackup": true
+       }
+      ]
+     },
+     "policyDataStore": {
+      "backupSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "hardware": "sample",
+        "hostName": "sample"
+       }
+      ],
+      "policyAttributes": {
+       "active": true,
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "clientEncrypt": true,
+       "dataClassification": "sample",
+       "disableClientSideDeduplication": true,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "generationId": 1,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "mediaOwner": "sample",
+       "priority": 1,
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useMultipleMSDPNodes": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Application Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "snapshotOnly": true,
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true,
+        "syntheticBackup": true
+       }
+      ]
+     },
+     "policyDeployment": {
+      "clients": [
+       {
+        "hostName": "sample",
+        "osNameAndHardware": "sample"
+       }
+      ],
+      "policyAttributes": {
+       "active": true,
+       "deploymentCertSource": "sample",
+       "deploymentInstallable": "sample",
+       "deploymentLimitJobs": 1,
+       "deploymentMasterServer": "sample",
+       "deploymentMediaServer": "sample",
+       "deploymentOptions": {
+        "javaGuiJre": "INCLUDE"
+       },
+       "deploymentUnixStageLoc": "sample",
+       "deploymentUseExistingCerts": true,
+       "deploymentWinStageLoc": "sample",
+       "generationId": 1,
+       "unixEcaCertPath": "sample",
+       "unixEcaCrlCheckLevel": "sample",
+       "unixEcaCrlPath": "sample",
+       "unixEcaKeyPassphrasefile": "sample",
+       "unixEcaPrivateKeyPath": "sample",
+       "unixEcaTrustStorePath": "sample",
+       "useMultipleMSDPNodes": true,
+       "useVirtualMachine": 1,
+       "winEcaCertPath": "sample",
+       "winEcaCertStore": "sample",
+       "winEcaCrlCheckLevel": "sample",
+       "winEcaCrlPath": "sample",
+       "winEcaKeyPassphrasefile": "sample",
+       "winEcaPrivateKeyPath": "sample",
+       "winEcaTrustStorePath": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "backupType": "Precheck",
+        "deploymentWindow": {
+         "endDateTime": "sample",
+         "startDateTime": "sample"
+        },
+        "scheduleName": "sample"
+       }
+      ]
+     },
+     "policyEnterpriseVault": {
+      "backupSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "hardware": "sample",
+        "hostName": "sample"
+       }
+      ],
+      "policyAttributes": {
+       "active": true,
+       "alternateClientHostname": "sample",
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "dataClassification": "sample",
+       "disableClientSideDeduplication": true,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "followNFSMounts": true,
+       "generationId": 1,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "mediaOwner": "sample",
+       "priority": 1,
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useMultipleDataStreams": true,
+       "useMultipleMSDPNodes": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Cumulative Incremental Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true
+       }
+      ]
+     },
+     "policyEpicLargeFile": {
+      "backupSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "hardware": "sample",
+        "hostName": "sample"
+       }
+      ],
+      "policyAttributes": {
+       "active": true,
+       "alternateClientHostname": "sample",
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "blockIncremental": true,
+       "checkpointIntervalMinutes": 1,
+       "clientCompress": true,
+       "clientEncrypt": true,
+       "collectBareMetalRestoreInfo": true,
+       "collectTrueImageRestoreInfo": "Collect true image restore information",
+       "crossMountPoints": true,
+       "dataClassification": "sample",
+       "dataMoverMachine": "Unknown",
+       "disableClientSideDeduplication": true,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "followNFSMounts": true,
+       "generationId": 1,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "mediaOwner": "sample",
+       "multipleStorage": true,
+       "multipleStorageList": [
+        {
+         "name": "sample",
+         "storageType": "STU"
+        }
+       ],
+       "offhostBackup": true,
+       "parallelStreams": 1,
+       "priority": 1,
+       "retainSnapshot": true,
+       "snapshotBackup": true,
+       "snapshotMethod": "sample",
+       "snapshotMethodArgs": "sample",
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useAccelerator": true,
+       "useMultipleDataStreams": true,
+       "useMultipleMSDPNodes": true,
+       "useReplicationDirector": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "acceleratorForcedRescan": true,
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Full Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "snapshotOnly": true,
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true,
+        "syntheticBackup": true
+       }
+      ]
+     },
+     "policyExchange": {
+      "backupSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "hardware": "sample",
+        "hostName": "sample"
+       }
+      ],
+      "policyAttributes": {
+       "active": true,
+       "alternateClientHostname": "sample",
+       "autoManagedType": 1,
+       "clientCompress": true,
+       "clientEncrypt": true,
+       "dataClassification": "sample",
+       "disableClientSideDeduplication": true,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "exchangeDatabaseBackupSource": "Passive copy if available, else active copy",
+       "exchangeServerList": [
+        "sample"
+       ],
+       "generationId": 1,
+       "granularRecovery": true,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "mediaOwner": "sample",
+       "offhostBackup": true,
+       "priority": 1,
+       "retainSnapshot": true,
+       "snapshotBackup": true,
+       "snapshotMethod": "sample",
+       "snapshotMethodArgs": "sample",
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useMultipleDataStreams": true,
+       "useMultipleMSDPNodes": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "acceleratorForcedRescan": true,
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Cumulative Incremental Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "snapshotOnly": true,
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true,
+        "syntheticBackup": true
+       }
+      ]
+     },
+     "policyFlashBackup": {
+      "backupSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "hardware": "sample",
+        "hostName": "sample"
+       }
+      ],
+      "policyAttributes": {
+       "active": true,
+       "alternateClientHostname": "sample",
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "dataClassification": "sample",
+       "dataMoverMachine": "Unknown",
+       "disableClientSideDeduplication": true,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "generationId": 1,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "mediaOwner": "sample",
+       "offhostBackup": true,
+       "priority": 1,
+       "snapshotBackup": true,
+       "snapshotMethod": "sample",
+       "snapshotMethodArgs": "sample",
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useMultipleDataStreams": true,
+       "useMultipleMSDPNodes": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Cumulative Incremental Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true
+       }
+      ]
+     },
+     "policyFlashBackupWindows": {
+      "backupSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "hardware": "sample",
+        "hostName": "sample"
+       }
+      ],
+      "policyAttributes": {
+       "active": true,
+       "alternateClientHostname": "sample",
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "blockIncremental": true,
+       "dataClassification": "sample",
+       "disableClientSideDeduplication": true,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "generationId": 1,
+       "hypervServer": "sample",
+       "jobLimit": 1,
+       "keyword": "sample",
+       "mediaOwner": "sample",
+       "offhostBackup": true,
+       "priority": 1,
+       "retainSnapshot": true,
+       "snapshotBackup": true,
+       "snapshotMethod": "sample",
+       "snapshotMethodArgs": "sample",
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useMultipleDataStreams": true,
+       "useMultipleMSDPNodes": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Cumulative Incremental Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true
+       }
+      ]
+     },
+     "policyGeneric": {
+      "backupSelections": {
+       "cloudObjectSelections": {
+        "cloudObjectStoreAccount": "sample",
+        "selections": [
+         {
+          "buckets": [
+           "sample"
+          ],
+          "includeAllObjects": true,
+          "name": "sample",
+          "query": "sample"
+         }
+        ]
+       },
+       "hypervIntelligentClientSelectionComplex": true,
+       "hypervIntelligentClientSelections": [
+        "sample"
+       ],
+       "hypervIntelligentClientsConversionError": true,
+       "kvmIntelligentClientSelectionComplex": true,
+       "kvmIntelligentClientSelections": [
+        "sample"
+       ],
+       "kvmIntelligentClientsConversionError": true,
+       "nasIncludeSelections": [
+        {
+         "arrayName": "sample",
+         "headName": "sample",
+         "volumeName": "sample"
+        }
+       ],
+       "selections": [
+        "sample"
+       ],
+       "vmwareIntelligentClientSelectionComplex": true,
+       "vmwareIntelligentClientSelections": [
+        "sample"
+       ],
+       "vmwareIntelligentClientsConversionError": true
+      },
+      "catDRInfo": {
+       "classNames": [
+        "sample"
+       ],
+       "email": "sample",
+       "flags": 1,
+       "password": "sample",
+       "path": "sample",
+       "userName": "sample"
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "arrayName": "sample",
+        "availabilityGroup": "sample",
+        "cluster": "sample",
+        "databaseName": "sample",
+        "dbUniqueName": "sample",
+        "dbid": "sample",
+        "groupID": "sample",
+        "hardware": "sample",
+        "headName": "sample",
+        "hostName": "sample",
+        "instanceGroup": "sample",
+        "instanceName": "sample",
+        "nasVendor": "sample",
+        "osNameAndHardware": "sample"
+       }
+      ],
+      "excludeSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "policyAttributes": {
+       "active": true,
+       "alternateClientHostname": "sample",
+       "applicationConsistent": true,
+       "applicationDiscovery": true,
+       "applicationProtection": [
+        "Exchange Recovery"
+       ],
+       "archivedRedoLogOptions": {
+        "backupSetSize": 1,
+        "deleteAfterMakingCopies": 1,
+        "filesPerBackupSet": 1,
+        "include": true,
+        "parallelStreams": 1
+       },
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "backupFileNameFormatOverrides": {
+        "archivedRedoLogs": "sample",
+        "controlFile": "sample",
+        "datafiles": "sample",
+        "fastRecoveryArea": "sample"
+       },
+       "backupHost": "sample",
+       "backupHostPool": "sample",
+       "backupSelectionType": "Whole Database",
+       "backupSetIdentifier": "sample",
+       "blockIncremental": true,
+       "calculateFileHash": true,
+       "checkpointIntervalMinutes": 1,
+       "clientCompress": true,
+       "clientEncrypt": true,
+       "clientType": "Protect Instances and Databases",
+       "cloudAdvancedOptions": {
+        "excludeBackupSelection": {
+         "diskSelection": "BOOT_DISK",
+         "diskTagKey": "sample",
+         "diskTagValue": "sample"
+        },
+        "granularRestore": true
+       },
+       "cloudProvider": "sample",
+       "cloudProviderAttributes": {
+        "createRegionalSnap": true,
+        "resourceGroup": {
+         "configurationName": "sample",
+         "name": "sample",
+         "region": "sample",
+         "subscriptionId": "sample"
+        }
+       },
+       "collectBareMetalRestoreInfo": true,
+       "collectTrueImageRestoreInfo": "Collect true image restore information",
+       "crossMountPoints": true,
+       "dataClassification": "sample",
+       "dataGuardOption": "None",
+       "dataMoverMachine": "Unknown",
+       "databaseBackupShareOptions": {
+        "deleteBackupCopies": true,
+        "deleteBackupSets": true,
+        "deleteProtectedBackupCopiesMinutes": 1,
+        "deleteProtectedBackupSetsMinutes": 1
+       },
+       "databaseOptions": {
+        "availabilityDatabaseBackupPreference": "None",
+        "backupBlockSize": "0.5 KB",
+        "backupStripes": 1,
+        "clientBuffersPerStripe": 1,
+        "convertDiffBackupsToFull": true,
+        "copyOnlyBackup": true,
+        "groupSize": 1,
+        "maxTransferSize": "64 KB",
+        "parallelBackupOps": 1,
+        "skipReadOnlyFilegroups": true,
+        "skipUnavailableDatabases": true,
+        "sqlServerChecksum": "None",
+        "useSQLServerCompression": true,
+        "vdiTimeout": 1
+       },
+       "datafileCopyTag": "sample",
+       "deploymentCertSource": "sample",
+       "deploymentInstallable": "sample",
+       "deploymentLimitJobs": 1,
+       "deploymentMasterServer": "sample",
+       "deploymentMediaServer": "sample",
+       "deploymentOptions": {
+        "javaGuiJre": "INCLUDE"
+       },
+       "deploymentUnixStageLoc": "sample",
+       "deploymentUseExistingCerts": true,
+       "deploymentWinStageLoc": "sample",
+       "disableClientSideDeduplication": true,
+       "discoveryLifetime": 1,
+       "downloadStagingPath": "sample",
+       "dynamicMultiStreaming": true,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "enableDynamicMultiStreaming": true,
+       "exchangeDatabaseBackupSource": "Passive copy if available, else active copy",
+       "exchangeServerList": [
+        "sample"
+       ],
+       "followNFSMounts": true,
+       "generationId": 1,
+       "granularRecovery": true,
+       "hypervServer": "sample",
+       "jobLimit": 1,
+       "keyword": "sample",
+       "maxFilesInBatch": 1,
+       "maxStreamsPerSelection": 1,
+       "maxStreamsPerVolume": 1,
+       "maximumLimits": {
+        "backupPiece": 1,
+        "backupSetSize": 1,
+        "filesPerBackupSet": 1,
+        "openFiles": 1,
+        "readRate": 1,
+        "sectionSize": 1,
+        "sectionUnits": "sample"
+       },
+       "mediaOwner": "sample",
+       "multipleStorage": true,
+       "multipleStorageList": [
+        {
+         "name": "sample",
+         "storageType": "STU"
+        }
+       ],
+       "offhostBackup": true,
+       "offlineDatabaseBackup": true,
+       "optimizedBackup": true,
+       "parallelStreams": 1,
+       "priority": 1,
+       "readOnlyTablespaceOptions": "Skip",
+       "retainSnapshot": true,
+       "secondarySnapshotMethodArgs": "sample",
+       "skipOfflineDatafiles": true,
+       "skipPropertyChecksum": true,
+       "snapshotBackup": true,
+       "snapshotMethod": "sample",
+       "snapshotMethodArgs": "sample",
+       "storage": "sample",
+       "storageIsSLP": true,
+       "transactionLogOptions": {
+        "availabilityDatabaseBackupPreference": "None",
+        "backupBlockSize": "0.5 KB",
+        "backupStripes": 1,
+        "clientBuffersPerStripe": 1,
+        "convertLogBackupsToFull": true,
+        "maxTransferSize": "64 KB",
+        "parallelBackupOps": 1,
+        "skipUnavailableDatabases": true,
+        "sqlServerChecksum": "None",
+        "truncateLogsAfterBackup": true,
+        "useSQLServerCompression": true
+       },
+       "unixEcaCertPath": "sample",
+       "unixEcaCrlCheckLevel": "sample",
+       "unixEcaCrlPath": "sample",
+       "unixEcaKeyPassphrasefile": "sample",
+       "unixEcaPrivateKeyPath": "sample",
+       "unixEcaTrustStorePath": "sample",
+       "useAccelerator": true,
+       "useBackupHostPool": true,
+       "useMultipleDataStreams": true,
+       "useMultipleMSDPNodes": true,
+       "useReplicationDirector": true,
+       "useVendorChangeTracking": true,
+       "useVirtualMachine": 1,
+       "volumeAccessProtocol": 1,
+       "volumePool": "sample",
+       "winEcaCertPath": "sample",
+       "winEcaCertStore": "sample",
+       "winEcaCrlCheckLevel": "sample",
+       "winEcaCrlPath": "sample",
+       "winEcaKeyPassphrasefile": "sample",
+       "winEcaPrivateKeyPath": "sample",
+       "winEcaTrustStorePath": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "acceleratorForcedRescan": true,
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": null,
+            "value": null
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "PRECHECK",
+        "deploymentWindow": {
+         "endDateTime": "sample",
+         "startDateTime": "sample"
+        },
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "keepUntil": true,
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "snapshotOnly": true,
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true,
+        "syntheticBackup": true
+       }
+      ]
+     },
+     "policyHyperV": {
+      "backupSelections": {
+       "hypervIntelligentClientSelectionComplex": true,
+       "hypervIntelligentClientSelections": [
+        "sample"
+       ],
+       "hypervIntelligentClientsConversionError": true,
+       "hypervServerType": "sample",
+       "selections": [
+        "sample"
+       ]
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "hardware": "sample",
+        "hostName": "sample"
+       }
+      ],
+      "policyAttributes": {
+       "active": true,
+       "alternateClientHostname": "sample",
+       "applicationDiscovery": true,
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "blockIncremental": true,
+       "dataClassification": "sample",
+       "disableClientSideDeduplication": true,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "generationId": 1,
+       "hypervServer": "sample",
+       "jobLimit": 1,
+       "keyword": "sample",
+       "mediaOwner": "sample",
+       "offhostBackup": true,
+       "priority": 1,
+       "snapshotMethod": "Hyper-V_v2",
+       "snapshotMethodArgs": "sample",
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useAccelerator": true,
+       "useMultipleDataStreams": true,
+       "useMultipleMSDPNodes": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "acceleratorForcedRescan": true,
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Cumulative Incremental Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "snapshotOnly": true,
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true,
+        "syntheticBackup": true
+       }
+      ]
+     },
+     "policyHypervisor": {
+      "backupSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "policyAttributes": {
+       "active": true,
+       "applicationConsistent": true,
+       "applicationDiscovery": true,
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "backupHost": "sample",
+       "blockIncremental": true,
+       "dataClassification": "sample",
+       "disableClientSideDeduplication": true,
+       "discoveryLifetime": 1,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "generationId": 1,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "mediaOwner": "sample",
+       "priority": 1,
+       "snapshotMethodArgs": "sample",
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useAccelerator": true,
+       "useMultipleMSDPNodes": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "acceleratorForcedRescan": true,
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Cumulative Incremental Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "snapshotOnly": true,
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true,
+        "syntheticBackup": true
+       }
+      ]
+     },
+     "policyInformix": {
+      "backupSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "hardware": "sample",
+        "hostName": "sample"
+       }
+      ],
+      "policyAttributes": {
+       "active": true,
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "clientCompress": true,
+       "clientEncrypt": true,
+       "dataClassification": "sample",
+       "disableClientSideDeduplication": true,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "generationId": 1,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "mediaOwner": "sample",
+       "priority": 1,
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useMultipleMSDPNodes": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Automatic Full Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "snapshotOnly": true,
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true,
+        "syntheticBackup": true
+       }
+      ]
+     },
+     "policyKVM": {
+      "backupSelections": {
+       "kvmIntelligentClientSelectionComplex": true,
+       "kvmIntelligentClientSelections": [
+        "sample"
+       ],
+       "kvmIntelligentClientsConversionError": true,
+       "selections": [
+        "sample"
+       ]
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "hardware": "sample",
+        "hostName": "sample"
+       }
+      ],
+      "policyAttributes": {
+       "active": true,
+       "applicationConsistent": true,
+       "applicationDiscovery": true,
+       "autoManagedType": 1,
+       "backupHost": "sample",
+       "dataClassification": "sample",
+       "discoveryLifetime": 1,
+       "effectiveDateUTC": "sample",
+       "generationId": 1,
+       "individualFileRestore": true,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "mediaOwner": "sample",
+       "priority": 1,
+       "snapshotMethodArgs": "sample",
+       "storage": "sample",
+       "storageIsSLP": true,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Full Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "snapshotOnly": true,
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true
+       }
+      ]
+     },
+     "policyKubernetes": {
+      "backupSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "hardware": "sample",
+        "hostName": "sample"
+       }
+      ],
+      "policyAttributes": {
+       "active": true,
+       "applicationDiscovery": true,
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "calculateFileHash": true,
+       "dataClassification": "sample",
+       "disableClientSideDeduplication": true,
+       "discoveryLifetime": 1,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "generationId": 1,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "kubernetesAdvancedOptions": {
+        "excludeResources": [
+         "sample"
+        ],
+        "failPartialBackups": true,
+        "selectors": [
+         "sample"
+        ]
+       },
+       "mediaOwner": "sample",
+       "priority": 1,
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useAccelerator": true,
+       "useMultipleMSDPNodes": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "acceleratorForcedRescan": true,
+        "backupCopies": {
+         "copies": [
+          {
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "useVirtualMachine": 1,
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Full Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "snapshotOnly": false,
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true,
+        "syntheticBackup": false
+       }
+      ]
+     },
+     "policyLotusNotes": {
+      "backupSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "hardware": "sample",
+        "hostName": "sample"
+       }
+      ],
+      "policyAttributes": {
+       "active": true,
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "checkpointIntervalMinutes": 1,
+       "clientCompress": true,
+       "clientEncrypt": true,
+       "crossMountPoints": true,
+       "dataClassification": "sample",
+       "disableClientSideDeduplication": true,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "followNFSMounts": true,
+       "generationId": 1,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "mediaOwner": "sample",
+       "priority": 1,
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useMultipleDataStreams": true,
+       "useMultipleMSDPNodes": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Cumulative Incremental Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true
+       }
+      ]
+     },
+     "policyMsdpObjectStore": {
+      "backupSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "policyAttributes": {
+       "active": true,
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "blockIncremental": true,
+       "dataClassification": "sample",
+       "disableClientSideDeduplication": true,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "generationId": 1,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "mediaOwner": "sample",
+       "priority": 1,
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useMultipleDataStreams": true,
+       "useMultipleMSDPNodes": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Cumulative Incremental Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "snapshotOnly": true,
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true,
+        "syntheticBackup": true
+       }
+      ]
+     },
+     "policyNASDataProtection": {
+      "backupSelections": {
+       "nasIncludeSelections": [
+        {
+         "arrayName": "sample",
+         "headName": "sample",
+         "volumeName": "sample"
+        }
+       ]
+      },
+      "clients": [
+       {
+        "arrayName": "sample",
+        "headName": "sample",
+        "hostName": "sample",
+        "nasVendor": "sample"
+       }
+      ],
+      "excludeSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "policyAttributes": {
+       "active": true,
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "backupHostPool": "sample",
+       "calculateFileHash": true,
+       "checkpointIntervalMinutes": 1,
+       "collectTrueImageRestoreInfo": "Collect true image restore information",
+       "dataClassification": "sample",
+       "disableClientSideDeduplication": true,
+       "dynamicMultiStreaming": true,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "generationId": 1,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "maxFilesInBatch": 1,
+       "maxStreamsPerVolume": 1,
+       "mediaOwner": "sample",
+       "offhostBackup": true,
+       "priority": 1,
+       "retainSnapshot": true,
+       "snapshotBackup": true,
+       "snapshotMethod": "sample",
+       "snapshotMethodArgs": "sample",
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useAccelerator": true,
+       "useBackupHostPool": true,
+       "useMultipleDataStreams": true,
+       "useMultipleMSDPNodes": true,
+       "useVendorChangeTracking": true,
+       "useVirtualMachine": 1,
+       "volumeAccessProtocol": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "acceleratorForcedRescan": true,
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Cumulative Incremental Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "snapshotOnly": true,
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true,
+        "syntheticBackup": true
+       }
+      ]
+     },
+     "policyNBUCatalog": {
+      "backupSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "catDRInfo": {
+       "classNames": [
+        "sample"
+       ],
+       "email": "sample",
+       "flags": 1,
+       "password": "sample",
+       "path": "sample",
+       "userName": "sample"
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "hardware": "sample",
+        "hostName": "sample"
+       }
+      ],
+      "excludeSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "policyAttributes": {
+       "active": true,
+       "alternateClientHostname": "sample",
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "checkpointIntervalMinutes": 1,
+       "collectTrueImageRestoreInfo": "Collect true image restore information",
+       "crossMountPoints": true,
+       "dataClassification": "sample",
+       "dataMoverMachine": "Unknown",
+       "disableClientSideDeduplication": true,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "followNFSMounts": true,
+       "generationId": 1,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "mediaOwner": "sample",
+       "offhostBackup": true,
+       "priority": 1,
+       "retainSnapshot": true,
+       "snapshotBackup": true,
+       "snapshotMethod": "sample",
+       "snapshotMethodArgs": "sample",
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useMultipleMSDPNodes": true,
+       "useReplicationDirector": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "acceleratorForcedRescan": true,
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Cumulative Incremental Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "snapshotOnly": true,
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true,
+        "syntheticBackup": true
+       }
+      ]
+     },
+     "policyNDMP": {
+      "backupSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "hardware": "sample",
+        "hostName": "sample"
+       }
+      ],
+      "policyAttributes": {
+       "active": true,
+       "autoManagedType": 1,
+       "dataClassification": "sample",
+       "dataMoverMachine": "Unknown",
+       "disableClientSideDeduplication": true,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "generationId": 1,
+       "hypervServer": "sample",
+       "jobLimit": 1,
+       "keyword": "sample",
+       "mediaOwner": "sample",
+       "offhostBackup": true,
+       "priority": 1,
+       "retainSnapshot": true,
+       "snapshotBackup": true,
+       "snapshotMethod": "sample",
+       "snapshotMethodArgs": "sample",
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useAccelerator": true,
+       "useMultipleDataStreams": true,
+       "useMultipleMSDPNodes": true,
+       "useReplicationDirector": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "acceleratorForcedRescan": true,
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Cumulative Incremental Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "snapshotOnly": true,
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true,
+        "syntheticBackup": true
+       }
+      ]
+     },
+     "policyNutanixAHV": {
+      "backupSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "hardware": "sample",
+        "hostName": "sample"
+       }
+      ],
+      "policyAttributes": {
+       "active": true,
+       "applicationConsistent": true,
+       "applicationDiscovery": true,
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "backupHost": "sample",
+       "blockIncremental": true,
+       "dataClassification": "sample",
+       "disableClientSideDeduplication": true,
+       "discoveryLifetime": 1,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "generationId": 1,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "mediaOwner": "sample",
+       "priority": 1,
+       "snapshotMethodArgs": "sample",
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useAccelerator": true,
+       "useMultipleMSDPNodes": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "acceleratorForcedRescan": true,
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Cumulative Incremental Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "snapshotOnly": true,
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true,
+        "syntheticBackup": true
+       }
+      ]
+     },
+     "policyOracle": {
+      "backupSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "databaseName": "sample",
+        "dbUniqueName": "sample",
+        "dbid": "sample",
+        "hardware": "sample",
+        "hostName": "sample",
+        "instanceGroup": "sample",
+        "instanceName": "sample"
+       }
+      ],
+      "policyAttributes": {
+       "active": true,
+       "alternateClientHostname": "sample",
+       "archivedRedoLogOptions": {
+        "archiveDeleteUntil": 1,
+        "backupSetSize": 1,
+        "deleteAfterMakingCopies": 1,
+        "filesPerBackupSet": 1,
+        "include": true,
+        "parallelStreams": 1
+       },
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "backupFileNameFormatOverrides": {
+        "archivedRedoLogs": "sample",
+        "controlFile": "sample",
+        "datafiles": "sample",
+        "fastRecoveryArea": "sample"
+       },
+       "backupSelectionType": "Whole Database",
+       "backupSetIdentifier": "sample",
+       "blockIncremental": true,
+       "clientCompress": true,
+       "clientEncrypt": true,
+       "clientType": "Protect Instances and Databases",
+       "dataClassification": "sample",
+       "dataGuardOption": "None",
+       "dataMoverMachine": "Unknown",
+       "databaseBackupShareOptions": {
+        "deleteBackupCopies": true,
+        "deleteBackupSets": true,
+        "deleteProtectedBackupCopiesMinutes": 1,
+        "deleteProtectedBackupSetsMinutes": 1
+       },
+       "datafileCopyTag": "sample",
+       "disableClientSideDeduplication": true,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "followNFSMounts": true,
+       "generationId": 1,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "maximumLimits": {
+        "backupPiece": 1,
+        "backupSetSize": 1,
+        "filesPerBackupSet": 1,
+        "openFiles": 1,
+        "readRate": 1,
+        "sectionSize": 1,
+        "sectionUnits": "sample"
+       },
+       "mediaOwner": "sample",
+       "multipleStorage": true,
+       "multipleStorageList": [
+        {
+         "name": "sample",
+         "storageType": "STU"
+        }
+       ],
+       "offhostBackup": true,
+       "offlineDatabaseBackup": true,
+       "parallelStreams": 1,
+       "priority": 1,
+       "readOnlyTablespaceOptions": "Skip",
+       "retainSnapshot": true,
+       "skipOfflineDatafiles": true,
+       "snapshotBackup": true,
+       "snapshotMethod": "sample",
+       "snapshotMethodArgs": "sample",
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useAccelerator": true,
+       "useMultipleMSDPNodes": true,
+       "useReplicationDirector": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "acceleratorForcedRescan": true,
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Application Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "keepUntil": true,
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "snapshotOnly": true,
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true,
+        "syntheticBackup": true
+       }
+      ]
+     },
+     "policySAP": {
+      "backupSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "hardware": "sample",
+        "hostName": "sample"
+       }
+      ],
+      "policyAttributes": {
+       "active": true,
+       "alternateClientHostname": "sample",
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "blockIncremental": true,
+       "checkpointIntervalMinutes": 1,
+       "clientCompress": true,
+       "clientEncrypt": true,
+       "collectTrueImageRestoreInfo": "Collect true image restore information",
+       "crossMountPoints": true,
+       "dataClassification": "sample",
+       "dataMoverMachine": "Unknown",
+       "disableClientSideDeduplication": true,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "followNFSMounts": true,
+       "generationId": 1,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "mediaOwner": "sample",
+       "offhostBackup": true,
+       "priority": 1,
+       "retainSnapshot": true,
+       "snapshotBackup": true,
+       "snapshotMethod": "sample",
+       "snapshotMethodArgs": "sample",
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useMultipleMSDPNodes": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Automatic Full Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "snapshotOnly": true,
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true,
+        "syntheticBackup": true
+       }
+      ]
+     },
+     "policySQLServer": {
+      "backupSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "availabilityGroup": "sample",
+        "cluster": "sample",
+        "databaseName": "sample",
+        "groupID": "sample",
+        "hardware": "sample",
+        "hostName": "sample",
+        "instanceGroup": "sample",
+        "instanceName": "sample"
+       }
+      ],
+      "policyAttributes": {
+       "active": true,
+       "alternateClientHostname": "sample",
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "backupSelectionType": "Clients",
+       "clientCompress": true,
+       "clientEncrypt": true,
+       "clientType": "Protect Instances and Databases",
+       "dataClassification": "sample",
+       "dataMoverMachine": "Unknown",
+       "databaseOptions": {
+        "availabilityDatabaseBackupPreference": "None",
+        "backupBlockSize": "0.5 KB",
+        "backupStripes": 1,
+        "clientBuffersPerStripe": 1,
+        "convertDiffBackupsToFull": true,
+        "copyOnlyBackup": true,
+        "groupSize": 1,
+        "maxTransferSize": "64 KB",
+        "parallelBackupOps": 1,
+        "skipReadOnlyFilegroups": true,
+        "skipUnavailableDatabases": true,
+        "sqlServerChecksum": "None",
+        "useSQLServerCompression": true,
+        "vdiTimeout": 1
+       },
+       "disableClientSideDeduplication": true,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "generationId": 1,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "mediaOwner": "sample",
+       "offhostBackup": true,
+       "priority": 1,
+       "retainSnapshot": true,
+       "snapshotBackup": true,
+       "snapshotMethod": "sample",
+       "snapshotMethodArgs": "sample",
+       "storage": "sample",
+       "storageIsSLP": true,
+       "transactionLogOptions": {
+        "availabilityDatabaseBackupPreference": "None",
+        "backupBlockSize": "0.5 KB",
+        "backupStripes": 1,
+        "clientBuffersPerStripe": 1,
+        "convertLogBackupsToFull": true,
+        "maxTransferSize": "64 KB",
+        "parallelBackupOps": 1,
+        "skipUnavailableDatabases": true,
+        "sqlServerChecksum": "None",
+        "truncateLogsAfterBackup": true,
+        "useSQLServerCompression": true
+       },
+       "useMultipleMSDPNodes": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "acceleratorForcedRescan": true,
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Application Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "snapshotOnly": true,
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true,
+        "syntheticBackup": true
+       }
+      ]
+     },
+     "policySharePoint": {
+      "backupSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "hardware": "sample",
+        "hostName": "sample"
+       }
+      ],
+      "policyAttributes": {
+       "active": true,
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "backupHost": "sample",
+       "clientCompress": true,
+       "clientEncrypt": true,
+       "dataClassification": "sample",
+       "disableClientSideDeduplication": true,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "generationId": 1,
+       "granularRecovery": true,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "mediaOwner": "sample",
+       "priority": 1,
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useMultipleDataStreams": true,
+       "useMultipleMSDPNodes": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Cumulative Incremental Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true
+       }
+      ]
+     },
+     "policyStandard": {
+      "backupSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "hardware": "sample",
+        "hostName": "sample"
+       }
+      ],
+      "policyAttributes": {
+       "active": true,
+       "alternateClientHostname": "sample",
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "blockIncremental": true,
+       "calculateFileHash": true,
+       "checkpointIntervalMinutes": 1,
+       "clientCompress": true,
+       "clientEncrypt": true,
+       "collectBareMetalRestoreInfo": true,
+       "collectTrueImageRestoreInfo": "Collect true image restore information",
+       "crossMountPoints": true,
+       "dataClassification": "sample",
+       "dataMoverMachine": "Unknown",
+       "disableClientSideDeduplication": true,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "followNFSMounts": true,
+       "generationId": 1,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "mediaOwner": "sample",
+       "offhostBackup": true,
+       "priority": 1,
+       "retainSnapshot": true,
+       "snapshotBackup": true,
+       "snapshotMethod": "sample",
+       "snapshotMethodArgs": "sample",
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useAccelerator": true,
+       "useMultipleDataStreams": true,
+       "useMultipleMSDPNodes": true,
+       "useReplicationDirector": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "acceleratorForcedRescan": true,
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Cumulative Incremental Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "snapshotOnly": true,
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true,
+        "syntheticBackup": true
+       }
+      ]
+     },
+     "policySybase": {
+      "backupSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "hardware": "sample",
+        "hostName": "sample"
+       }
+      ],
+      "policyAttributes": {
+       "active": true,
+       "alternateClientHostname": "sample",
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "clientCompress": true,
+       "clientEncrypt": true,
+       "dataClassification": "sample",
+       "disableClientSideDeduplication": true,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "generationId": 1,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "mediaOwner": "sample",
+       "priority": 1,
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useMultipleMSDPNodes": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Automatic Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true
+       }
+      ]
+     },
+     "policyTeradata": {
+      "backupSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "hardware": "sample",
+        "hostName": "sample"
+       }
+      ],
+      "policyAttributes": {
+       "active": true,
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "clientEncrypt": true,
+       "dataClassification": "sample",
+       "disableClientSideDeduplication": true,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "generationId": 1,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "mediaOwner": "sample",
+       "priority": 1,
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useMultipleMSDPNodes": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Automatic Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "snapshotOnly": true,
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true,
+        "syntheticBackup": true
+       }
+      ]
+     },
+     "policyUniversalShare": {
+      "backupSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "hardware": "sample",
+        "hostName": "sample"
+       }
+      ],
+      "policyAttributes": {
+       "active": true,
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "blockIncremental": true,
+       "dataClassification": "sample",
+       "disableClientSideDeduplication": true,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "generationId": 1,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "mediaOwner": "sample",
+       "priority": 1,
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useMultipleDataStreams": true,
+       "useMultipleMSDPNodes": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Cumulative Incremental Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "snapshotOnly": true,
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true,
+        "syntheticBackup": true
+       }
+      ]
+     },
+     "policyVMware": {
+      "backupSelections": {
+       "selections": [
+        "sample"
+       ],
+       "vmwareIntelligentClientSelectionComplex": true,
+       "vmwareIntelligentClientSelections": [
+        "sample"
+       ],
+       "vmwareIntelligentClientsConversionError": true
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "hardware": "sample",
+        "hostName": "sample"
+       }
+      ],
+      "policyAttributes": {
+       "active": true,
+       "applicationConsistent": true,
+       "applicationDiscovery": true,
+       "applicationProtection": [
+        "Exchange Recovery"
+       ],
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "backupHost": "sample",
+       "blockIncremental": true,
+       "dataClassification": "sample",
+       "disableClientSideDeduplication": true,
+       "discoveryLifetime": 1,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "generationId": 1,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "mediaOwner": "sample",
+       "priority": 1,
+       "secondarySnapshotMethodArgs": "sample",
+       "snapshotFreeBackupInfo": {
+        "isSnapshotFreeBackup": true,
+        "isUshareEnabled": true,
+        "snapshotMethodArgs": "sample"
+       },
+       "snapshotMethodArgs": "sample",
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useAccelerator": true,
+       "useMultipleMSDPNodes": true,
+       "useReplicationDirector": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "acceleratorForcedRescan": true,
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Cumulative Incremental Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "snapshotOnly": true,
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true,
+        "syntheticBackup": true
+       }
+      ]
+     },
+     "policyWindows": {
+      "backupSelections": {
+       "selections": [
+        "sample"
+       ]
+      },
+      "clients": [
+       {
+        "OS": "sample",
+        "hardware": "sample",
+        "hostName": "sample"
+       }
+      ],
+      "policyAttributes": {
+       "active": true,
+       "alternateClientHostname": "sample",
+       "autoManagedLabel": "sample",
+       "autoManagedType": 1,
+       "backupHost": "sample",
+       "calculateFileHash": true,
+       "checkpointIntervalMinutes": 1,
+       "clientCompress": true,
+       "clientEncrypt": true,
+       "collectBareMetalRestoreInfo": true,
+       "collectTrueImageRestoreInfo": "Collect true image restore information",
+       "crossMountPoints": true,
+       "dataClassification": "sample",
+       "dataMoverMachine": "Unknown",
+       "disableClientSideDeduplication": true,
+       "effectiveDateUTC": "sample",
+       "enableClientSideDeduplication": true,
+       "followNFSMounts": true,
+       "generationId": 1,
+       "granularRecovery": true,
+       "jobLimit": 1,
+       "keyword": "sample",
+       "mediaOwner": "sample",
+       "offhostBackup": true,
+       "optimizedBackup": true,
+       "priority": 1,
+       "retainSnapshot": true,
+       "snapshotBackup": true,
+       "snapshotMethod": "sample",
+       "snapshotMethodArgs": "sample",
+       "storage": "sample",
+       "storageIsSLP": true,
+       "useAccelerator": true,
+       "useMultipleDataStreams": true,
+       "useMultipleMSDPNodes": true,
+       "useReplicationDirector": true,
+       "useVirtualMachine": 1,
+       "volumePool": "sample"
+      },
+      "policyName": "sample",
+      "policyType": "sample",
+      "schedules": [
+       {
+        "acceleratorForcedRescan": true,
+        "backupCopies": {
+         "copies": [
+          {
+           "failStrategy": "Continue",
+           "mediaOwner": "sample",
+           "retentionLevel": 1,
+           "retentionPeriod": {
+            "unit": "SECONDS",
+            "value": 1
+           },
+           "storage": "sample",
+           "volumePool": "sample"
+          }
+         ],
+         "priority": 1
+        },
+        "backupType": "Cumulative Incremental Backup",
+        "excludeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "frequencySeconds": 1,
+        "includeDates": {
+         "lastDayOfMonth": true,
+         "recurringDaysOfMonth": [
+          1
+         ],
+         "recurringDaysOfWeek": [
+          "sample"
+         ],
+         "specificDates": [
+          "sample"
+         ]
+        },
+        "mediaMultiplexing": 1,
+        "retriesAllowedAfterRunDay": true,
+        "scheduleName": "sample",
+        "scheduleType": "Calendar",
+        "snapshotOnly": true,
+        "startWindow": [
+         {
+          "dayOfWeek": 1,
+          "durationSeconds": 1,
+          "startSeconds": 1
+         }
+        ],
+        "storageIsSLP": true,
+        "syntheticBackup": true
+       }
+      ]
+     }
+    },
+    "policyNamePrefix": "sample",
+    "schedules": [
+     {
+      "backupFromSnapshot": {
+       "backupStorage": "sample",
+       "deferOperation": true,
+       "retention": {
+        "unit": "HOURS",
+        "value": 1
+       },
+       "retentionType": "FIXED"
+      },
+      "backupStorageUnit": "sample",
+      "backupWindows": [
+       {
+        "dayOfWeek": 1,
+        "durationSeconds": 1,
+        "startSeconds": 1
+       }
+      ],
+      "cloudSnapshotIndex": true,
+      "cloudSnapshotReplication": [
+       {
+        "cloudSnapshotReplicationTarget": "sample",
+        "retention": {
+         "unit": "HOURS",
+         "value": 1
+        }
+       }
+      ],
+      "duplication": {
+       "retention": {
+        "unit": "HOURS",
+        "value": 1
+       },
+       "storageUnit": "sample"
+      },
+      "excludeDates": {
+       "lastDayOfMonth": true,
+       "recurringDaysOfMonth": [
+        1
+       ],
+       "recurringDaysOfWeek": [
+        "sample"
+       ],
+       "specificDates": [
+        "sample"
+       ]
+      },
+      "frequencySeconds": 1,
+      "includeDates": {
+       "lastDayOfMonth": true,
+       "recurringDaysOfMonth": [
+        1
+       ],
+       "recurringDaysOfWeek": [
+        "sample"
+       ],
+       "specificDates": [
+        "sample"
+       ]
+      },
+      "replication": {
+       "replicationTarget": {
+        "targetMasterServer": "sample",
+        "targetSlp": "sample"
+       },
+       "retention": {
+        "unit": "HOURS",
+        "value": 1
+       }
+      },
+      "retention": {
+       "unit": "HOURS",
+       "value": 1
+      },
+      "retentionType": "FIXED",
+      "scheduleName": "sample",
+      "scheduleType": "FULL"
+     }
+    ],
+    "subscribeAllowed": true,
+    "subscriptionCount": 1,
+    "workloadType": "CLOUD"
+   },
+   "id": "sample",
+   "links": {
+    "self": {
+     "href": "sample"
+    }
+   },
+   "relationships": {
+    "policy": {
+     "data": {
+      "id": "sample",
+      "type": "sample"
+     },
+     "links": {
+      "related": {
+       "href": "sample"
+      }
+     }
+    }
+   },
+   "type": "slov3"
+  }
+ ]
+}
