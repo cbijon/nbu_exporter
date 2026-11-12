@@ -53,6 +53,9 @@ type APIVersionDetector struct {
 	apiKey      string       // API key for authentication (immutable)
 	retryConfig RetryConfig  // Retry configuration for transient failures
 	tracer      trace.Tracer // OpenTelemetry tracer for distributed tracing (nil if tracing disabled)
+	// netErr is the transport error (connection refused, timeout, DNS, TLS) of the
+	// last version probe, nil when the master answered with any HTTP status.
+	netErr error
 }
 
 // NewAPIVersionDetector creates a new version detector with the provided client and immutable configuration values.
@@ -130,7 +133,22 @@ func (d *APIVersionDetector) DetectVersion(ctx context.Context) (string, error) 
 	for _, version := range models.SupportedAPIVersions {
 		log.Debugf("Attempting API version %s", version)
 
-		if d.tryVersion(ctx, version) {
+		d.netErr = nil
+		ok := d.tryVersion(ctx, version)
+		if !ok && d.netErr != nil {
+			// The master did not answer at all: the remaining versions target the
+			// same host and would each fail the same way after the same retries
+			// (minutes for an unreachable or firewalled master). Fail fast; the
+			// collection loop retries detection on its next cycle.
+			err := fmt.Errorf("NetBackup master unreachable at %s (version detection stopped at %s): %w",
+				d.baseURL, version, d.netErr)
+			if span != nil {
+				span.RecordError(err)
+				span.SetStatus(codes.Error, "NetBackup master unreachable")
+			}
+			return "", err
+		}
+		if ok {
 			log.Infof("Successfully detected API version: %s", version)
 
 			// Record detected version as span attribute
@@ -221,6 +239,7 @@ func (d *APIVersionDetector) retryVersionTest(ctx context.Context, version, test
 				continue
 			}
 			d.recordNetworkError(span, version, err)
+			d.netErr = err
 			return false
 		}
 
