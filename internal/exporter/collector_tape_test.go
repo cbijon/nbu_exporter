@@ -309,7 +309,7 @@ func TestTapeCollector_MediaCursorEchoDoesNotLoop(t *testing.T) {
 		}
 	}
 	require.Equal(t, 2, client.calls["/storage/tape-media"], "second page repeats the cursor -> stop")
-	require.Equal(t, float64(2), total)
+	require.Equal(t, float64(1), total, "the repeated volume (same barcode) is counted once")
 }
 
 // Offset-paginated endpoints follow meta.pagination.next and stop when it does not
@@ -348,4 +348,40 @@ func TestNextOffset(t *testing.T) {
 	require.Equal(t, -1, nextOffset(0, 0, 100), "next=0 on the first page means last page")
 	require.Equal(t, -1, nextOffset(100, 100, 100), "a non-advancing next stops the loop")
 	require.Equal(t, -1, nextOffset(0, 100, 0), "an empty page stops the loop")
+}
+
+// The same drive or pool returned twice (overlapping pages) is counted once and
+// emitted once — a duplicate series would fail the whole /metrics scrape.
+func TestTapeCollector_DuplicateDriveAndPoolCountedOnce(t *testing.T) {
+	drives := writeFixture(t, `{"data":[
+		{"id":"d0","attributes":{"driveStatus":"DRIVE_STATUS_UP","driveType":"DT_HCART","robotType":"TLD","deviceHost":"ms1"}},
+		{"id":"d0","attributes":{"driveStatus":"DRIVE_STATUS_UP","driveType":"DT_HCART","robotType":"TLD","deviceHost":"ms1"}}]}`)
+	pools := writeFixture(t, `{"data":[
+		{"attributes":{"volumePoolName":"Scratch","poolType":"SCRATCH_MEDIA_POOL","partiallyFullMedia":1}},
+		{"attributes":{"volumePoolName":"Scratch","poolType":"SCRATCH_MEDIA_POOL","partiallyFullMedia":1}}]}`)
+	client := &tapeRoutedClient{t: t, byPath: map[string]string{
+		"/storage/drives": drives, "/storage/tape-volume-pools": pools,
+		"/storage/tape-media": "", "/storage/robots-device-hosts": "", "/storage/disk-pools": "",
+	}}
+	c := newTapeCollector(client, testConfig(), "site1")
+	ch := make(chan prometheus.Metric, 16)
+	require.NoError(t, c.Collect(context.Background(), ch))
+	close(ch)
+	info, pool := 0, 0
+	var count float64
+	for m := range ch {
+		var d dto.Metric
+		require.NoError(t, m.Write(&d))
+		switch desc := m.Desc().String(); {
+		case strings.Contains(desc, "nbu_tape_drive_info"):
+			info++
+		case strings.Contains(desc, "nbu_tape_drives_count"):
+			count = d.GetGauge().GetValue()
+		case strings.Contains(desc, "nbu_tape_pool_partially_full"):
+			pool++
+		}
+	}
+	require.Equal(t, 1, info)
+	require.Equal(t, float64(1), count)
+	require.Equal(t, 1, pool)
 }

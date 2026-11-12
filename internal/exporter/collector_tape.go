@@ -118,6 +118,7 @@ func nextOffset(current, next, rows int) int {
 func (c *tapeCollector) collectMedia(ctx context.Context, ch chan<- prometheus.Metric) {
 	type key struct{ pool, mediaType, robotType string }
 	counts := map[key]float64{}
+	seen := map[string]struct{}{} // barcodes already counted (pages may overlap)
 	cursor := ""
 	for page := 0; page < maxMediaPages; page++ {
 		params := map[string]string{QueryParamLimit: pageLimit}
@@ -133,6 +134,12 @@ func (c *tapeCollector) collectMedia(ctx context.Context, ch chan<- prometheus.M
 		}
 		for _, d := range resp.Data {
 			a := d.Attributes
+			if a.Barcode != "" {
+				if _, dup := seen[a.Barcode]; dup {
+					continue
+				}
+				seen[a.Barcode] = struct{}{}
+			}
 			counts[key{a.VolumePool, a.MediaType, a.Robot.RobotType}]++
 		}
 		next := resp.Meta.Pagination.Next
@@ -155,6 +162,7 @@ func (c *tapeCollector) collectMedia(ctx context.Context, ch chan<- prometheus.M
 func (c *tapeCollector) collectDrives(ctx context.Context, ch chan<- prometheus.Metric) {
 	type key struct{ driveType, robotType, status string }
 	counts := map[key]float64{}
+	seen := map[string]struct{}{} // drive names already counted (pages may overlap)
 	offset := 0
 	for page := 0; page < maxMediaPages && offset >= 0; page++ {
 		url := c.cfg.BuildURL(drivesPath, map[string]string{QueryParamLimit: pageLimit, QueryParamOffset: strconv.Itoa(offset)})
@@ -174,6 +182,10 @@ func (c *tapeCollector) collectDrives(ctx context.Context, ch chan<- prometheus.
 					host = a.DevicePaths[0].DeviceHost
 				}
 			}
+			if _, dup := seen[name+"\x00"+host]; dup {
+				continue
+			}
+			seen[name+"\x00"+host] = struct{}{}
 			counts[key{a.DriveType, a.RobotType, a.DriveStatus}]++
 			ch <- prometheus.MustNewConstMetric(c.driveInfo, prometheus.GaugeValue, 1,
 				c.site, name, host, a.DriveType, strconv.Itoa(a.RobotNumber), a.DriveStatus)
@@ -193,6 +205,7 @@ func (c *tapeCollector) collectDrives(ctx context.Context, ch chan<- prometheus.
 // (API v12.0+) and emits nbu_tape_pool_partially_full per (pool_name, pool_type).
 // Absent on older appliances; the fetch error is logged and skipped.
 func (c *tapeCollector) collectPools(ctx context.Context, ch chan<- prometheus.Metric) {
+	seen := map[string]struct{}{} // pool names already emitted (pages may overlap)
 	cursor := ""
 	for page := 0; page < maxMediaPages; page++ {
 		params := map[string]string{QueryParamLimit: pageLimit}
@@ -206,6 +219,10 @@ func (c *tapeCollector) collectPools(ctx context.Context, ch chan<- prometheus.M
 		}
 		for _, p := range resp.Data {
 			a := p.Attributes
+			if _, dup := seen[a.VolumePoolName]; dup {
+				continue
+			}
+			seen[a.VolumePoolName] = struct{}{}
 			ch <- prometheus.MustNewConstMetric(c.poolPartial, prometheus.GaugeValue,
 				float64(a.PartiallyFullMedia), c.site, a.VolumePoolName, a.PoolType)
 		}

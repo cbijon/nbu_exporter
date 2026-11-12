@@ -109,7 +109,7 @@ func FetchStorageFull(ctx context.Context, client *NbuClient) ([]StorageMetricVa
 			Type:               stuType,
 			SubType:            attr.StorageSubType,
 			TotalCapacityBytes: float64(attr.TotalCapacityBytes),
-			MaxConcurrentJobs:  float64(attr.MaxConcurrentJobs),
+			MaxConcurrentJobs:  float64(maxConcurrency(attr.MaxConcurrentJobs, attr.MaxConcurrentDrives)),
 			MaxFragmentBytes:   float64(attr.MaxFragmentSizeMegabytes) * bytesPerMegabyte,
 			IsCloud:            attr.IsCloudSTU,
 			WormCapable:        attr.WormCapable,
@@ -129,6 +129,15 @@ func FetchStorageFull(ctx context.Context, client *NbuClient) ([]StorageMetricVa
 
 	log.Debugf("Fetched storage data for %d storage units", len(storages.Data))
 	return metrics, units, nil
+}
+
+// maxConcurrency returns a storage unit's concurrency limit: maxConcurrentJobs for
+// disk units, or maxConcurrentDrives for tape units (which have no maxConcurrentJobs).
+func maxConcurrency(jobs, drives int) int {
+	if jobs > 0 {
+		return jobs
+	}
+	return drives
 }
 
 // aggregateJob folds a single job's attributes into every job-derived metric.
@@ -200,6 +209,54 @@ func aggregateLiveJob(agg *JobAggregator, attr models.JobAttributes) {
 	}
 }
 
+// lifecycleActions are the job types whose last success the lifecycle dashboard and
+// alerts track per client: primary backup, tape copy (SLP duplication) and inter-site
+// replication (AIR import).
+var lifecycleActions = []string{"BACKUP", "DUPLICATION", "IMPORT"}
+
+// SeedClientLastSuccess queries, for every allowlisted client and lifecycle action, the
+// most recent successful job (status 0, newest endTime) and folds it into
+// agg.ClientLastSuccess. Without it the last-success timestamps only come from jobs
+// that finished inside the scraping window: after a restart, a client whose last tape
+// copy is older than the window has no series at all, so it shows neither compliant
+// nor overdue and NbuClientNoRecentTapeCopy / NbuClientNoRecentReplication can never
+// fire for it. Lookup failures are logged per client and skipped.
+func SeedClientLastSuccess(ctx context.Context, client *NbuClient, agg *JobAggregator, allowlist []string) {
+	seen := make(map[string]struct{}, len(allowlist))
+	for _, name := range allowlist {
+		if _, dup := seen[name]; dup || !agg.trackClient(name) {
+			continue
+		}
+		seen[name] = struct{}{}
+		for _, action := range lifecycleActions {
+			if ctx.Err() != nil {
+				return
+			}
+			url := client.cfg.BuildURL(jobsPath, map[string]string{
+				QueryParamFilter: fmt.Sprintf("clientName eq '%s' and jobType eq '%s' and status eq 0",
+					odataQuoteString(name), action),
+				QueryParamSort:  "-endTime",
+				QueryParamLimit: "1",
+			})
+			var jobs models.Jobs
+			if err := client.FetchData(ctx, url, &jobs); err != nil {
+				log.WithError(err).WithField("client", name).WithField("action", action).
+					Warn("perClient: last-success lookup failed; skipping")
+				continue
+			}
+			if len(jobs.Data) == 0 || jobs.Data[0].Attributes.EndTime.IsZero() {
+				continue // no successful job of this kind on record
+			}
+			a := jobs.Data[0].Attributes
+			key := ClientSuccessKey{Client: name, Policy: a.PolicyName, Action: action}
+			ts := float64(a.EndTime.Unix())
+			if existing, ok := agg.ClientLastSuccess[key]; !ok || ts > existing {
+				agg.ClientLastSuccess[key] = ts
+			}
+		}
+	}
+}
+
 // FetchLiveJobs pages through every job that is not DONE (filter state ne 'DONE') and
 // folds it with aggregateLiveJob. The windowed endTime filter used by FetchJobDetails
 // can never match these jobs — they have no endTime yet — so without this pass the
@@ -224,10 +281,10 @@ func FetchLiveJobs(ctx context.Context, client *NbuClient, agg *JobAggregator) e
 		for _, job := range jobs.Data {
 			aggregateLiveJob(agg, job.Attributes)
 		}
-		if len(jobs.Data) == 0 || jobs.Meta.Pagination.Next == cursor {
+		if len(jobs.Data) == 0 {
 			return "", nil
 		}
-		return jobs.Meta.Pagination.Next, nil
+		return jobs.Meta.Pagination.Next, nil // HandlePagination stops on an echoed cursor
 	})
 	if err != nil {
 		span.RecordError(err)
@@ -333,6 +390,12 @@ func HandlePagination(ctx context.Context, fetchFunc func(ctx context.Context, c
 				return err
 			}
 			if next == "" {
+				return nil
+			}
+			if next == cursor {
+				// A backend that echoes the cursor would otherwise loop until the
+				// context deadline, re-aggregating the same page every time.
+				log.Warnf("pagination: server returned the same cursor %q twice; stopping", next)
 				return nil
 			}
 			cursor = next
@@ -448,6 +511,12 @@ func FetchAllJobsFull(
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		return nil, err
+	}
+
+	// Per-client last success, looked up independently of the scraping window so the
+	// lifecycle metrics are right after a restart and for clients idle in the window.
+	if client.cfg.Collectors.PerClient.Enabled {
+		SeedClientLastSuccess(ctx, client, agg, client.cfg.Collectors.PerClient.Allowlist)
 	}
 
 	// Point-in-time pass for jobs still running or waiting. A failure here degrades

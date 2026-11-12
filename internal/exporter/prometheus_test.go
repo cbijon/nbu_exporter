@@ -972,3 +972,19 @@ func upValuesBySite(mfs []*dto.MetricFamily) map[string]float64 {
 	}
 	return out
 }
+
+// A series emitted twice must not turn the whole scrape into an HTTP 500: the
+// duplicate is dropped and every other series is still gathered.
+func TestForwardUniqueDropsDuplicateSeries(t *testing.T) {
+	desc := prometheus.NewDesc("nbu_test_dup", "test", []string{"site"}, nil)
+	in := make(chan prometheus.Metric, 4)
+	out := make(chan prometheus.Metric, 4)
+	in <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, 1, "a")
+	in <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, 1, "a")
+	in <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, 2, "b")
+	close(in)
+	dropped := forwardUnique(in, out)
+	close(out)
+	assert.Equal(t, 1, dropped)
+	assert.Len(t, out, 2)
+}

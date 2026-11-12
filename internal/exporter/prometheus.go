@@ -6,12 +6,14 @@ package exporter
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/fjacquet/nbu_exporter/internal/models"
 	"github.com/fjacquet/nbu_exporter/internal/telemetry"
 	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
 	log "github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -396,7 +398,53 @@ func (c *NbuCollector) createScrapeSpan(ctx context.Context) (context.Context, t
 //
 // Parameters:
 //   - ch: Channel to send Prometheus metrics to (provided by Prometheus registry)
-func (c *NbuCollector) Collect(ch chan<- prometheus.Metric) {
+func (c *NbuCollector) Collect(out chan<- prometheus.Metric) {
+	// Every metric passes through forwardUnique: the Prometheus client rejects the
+	// WHOLE scrape (HTTP 500, all sites lost) if one series is emitted twice — e.g. a
+	// drive or pool repeated across pages, or a duplicated allowlist entry. Dropping
+	// the duplicate keeps every other series served.
+	in := make(chan prometheus.Metric, 256)
+	done := make(chan int)
+	go func() { done <- forwardUnique(in, out) }()
+	c.collect(in)
+	close(in)
+	if dropped := <-done; dropped > 0 {
+		log.Warnf("dropped %d duplicate metric series this scrape (same name and labels emitted twice)", dropped)
+	}
+}
+
+// forwardUnique copies metrics from in to out, skipping any series (descriptor +
+// label values) already forwarded. It returns the number of duplicates dropped.
+func forwardUnique(in <-chan prometheus.Metric, out chan<- prometheus.Metric) int {
+	seen := make(map[string]struct{}, 512)
+	dropped := 0
+	var sb strings.Builder
+	for m := range in {
+		var pb dto.Metric
+		if err := m.Write(&pb); err != nil {
+			out <- m // let the registry report the malformed metric as before
+			continue
+		}
+		sb.Reset()
+		sb.WriteString(m.Desc().String())
+		for _, lp := range pb.GetLabel() {
+			sb.WriteByte(0)
+			sb.WriteString(lp.GetName())
+			sb.WriteByte('=')
+			sb.WriteString(lp.GetValue())
+		}
+		key := sb.String()
+		if _, dup := seen[key]; dup {
+			dropped++
+			continue
+		}
+		seen[key] = struct{}{}
+		out <- m
+	}
+	return dropped
+}
+
+func (c *NbuCollector) collect(ch chan<- prometheus.Metric) {
 	// Multi-site mode: read the latest snapshot and emit per-site (no live fetch).
 	if c.store != nil {
 		c.collectFromSnapshot(ch)

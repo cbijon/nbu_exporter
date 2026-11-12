@@ -311,6 +311,7 @@ func loadStorageTestData(t *testing.T) *models.Storages {
 			UsedCapacityBytes          int64  `json:"usedCapacityBytes"`
 			MaxFragmentSizeMegabytes   int    `json:"maxFragmentSizeMegabytes"`
 			MaxConcurrentJobs          int    `json:"maxConcurrentJobs"`
+			MaxConcurrentDrives        int    `json:"maxConcurrentDrives"`
 			OnDemandOnly               bool   `json:"onDemandOnly"`
 			StorageCategory            string `json:"storageCategory,omitempty"`
 			ReplicationCapable         bool   `json:"replicationCapable,omitempty"`

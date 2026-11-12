@@ -370,3 +370,64 @@ func TestFetchAllJobsFull_LiveJobsFailureIsNonFatal(t *testing.T) {
 		t.Errorf("windowed metrics must survive a live-pass failure")
 	}
 }
+
+// HandlePagination stops when the server echoes the cursor it was given instead of
+// looping until the context deadline.
+func TestHandlePagination_StopsOnEchoedCursor(t *testing.T) {
+	calls := 0
+	err := HandlePagination(context.Background(), func(_ context.Context, cursor string) (string, error) {
+		calls++
+		return "SAME", nil
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if calls != 2 {
+		t.Errorf("expected 2 fetches (first page + echoed cursor), got %d", calls)
+	}
+}
+
+func TestMaxConcurrency(t *testing.T) {
+	if maxConcurrency(8, 0) != 8 || maxConcurrency(0, 4) != 4 || maxConcurrency(0, 0) != 0 {
+		t.Error("maxConcurrency must prefer maxConcurrentJobs and fall back to maxConcurrentDrives")
+	}
+}
+
+// After a restart the scraping window may hold no job for a client; its last tape copy
+// (30h ago here) must still be reported so the overdue panels/alerts can see it.
+func TestFetchAllJobsFull_SeedsClientLastSuccessOutsideWindow(t *testing.T) {
+	old := time.Now().Add(-30 * time.Hour).UTC().Format(time.RFC3339)
+	var lookups []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		w.Header().Set(contentTypeHeader, fmt.Sprintf(contentTypeNetBackupJSONFormat, "14.0"))
+		if q.Get("sort") == "-endTime" {
+			lookups = append(lookups, q.Get("filter"))
+			if strings.Contains(q.Get("filter"), "jobType eq 'DUPLICATION'") {
+				_, _ = fmt.Fprintf(w, `{"data":[{"attributes":{"jobId":7,"jobType":"DUPLICATION","clientName":"db01","policyName":"SLP-Tape","status":0,"state":"DONE","endTime":%q}}]}`, old)
+				return
+			}
+		}
+		_, _ = w.Write([]byte(`{"data":[]}`)) // empty window, nothing live, no other success
+	}))
+	defer server.Close()
+
+	cfg := createTestConfig(server.URL, "14.0")
+	cfg.Collectors.PerClient.Enabled = true
+	cfg.Collectors.PerClient.Allowlist = []string{"db01", "db01"} // duplicate entry is looked up once
+	agg, err := FetchAllJobsFull(context.Background(), NewNbuClient(cfg), "1h")
+	if err != nil {
+		t.Fatalf("FetchAllJobsFull: %v", err)
+	}
+	if len(lookups) != 3 {
+		t.Errorf("expected 3 lookups (BACKUP, DUPLICATION, IMPORT) for one client, got %d: %q", len(lookups), lookups)
+	}
+	key := ClientSuccessKey{Client: "db01", Policy: "SLP-Tape", Action: "DUPLICATION"}
+	ts, ok := agg.ClientLastSuccess[key]
+	if !ok {
+		t.Fatalf("last tape copy outside the window not seeded: %v", agg.ClientLastSuccess)
+	}
+	if age := time.Since(time.Unix(int64(ts), 0)); age < 29*time.Hour || age > 31*time.Hour {
+		t.Errorf("seeded timestamp age = %v, want ~30h", age)
+	}
+}
