@@ -177,7 +177,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(nbu_status_count{action=\"BACKUP\",status=\"0\",site=~\"$site\"}) / clamp_min(sum(nbu_status_count{action=\"BACKUP\",site=~\"$site\"}), 1) * 100",
+          "expr": "(sum(nbu_status_count{action=\"BACKUP\",status=\"0\",site=~\"$site\"}) or 0 * sum(nbu_status_count{action=\"BACKUP\",site=~\"$site\"})) / clamp_min(sum(nbu_status_count{action=\"BACKUP\",site=~\"$site\"}), 1) * 100",
           "legendFormat": "",
           "range": false,
           "instant": true,
@@ -281,6 +281,17 @@
           "range": false,
           "instant": true,
           "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "reducers": [
+              "lastNotNull"
+            ],
+            "mode": "seriesToRows"
+          }
         }
       ]
     },
@@ -401,6 +412,17 @@
           "instant": true,
           "refId": "A"
         }
+      ],
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "reducers": [
+              "lastNotNull"
+            ],
+            "mode": "seriesToRows"
+          }
+        }
       ]
     },
     {
@@ -484,7 +506,7 @@
           "legendFormat": "{{site}} / p50 {{policy_type}}",
           "range": true,
           "instant": false,
-          "refId": "A"
+          "refId": "B"
         }
       ]
     },

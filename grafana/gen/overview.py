@@ -31,13 +31,13 @@ def build():
 
     out.append(p.row("Key indicators / Indicateurs clés", 10))
     out.append(p.stat("Backup success rate / Taux succès BACKUP",
-                      'sum(nbu_status_count{action="BACKUP",status="0"}) '
+                      '(sum(nbu_status_count{action="BACKUP",status="0"}) or 0 * sum(nbu_status_count{action="BACKUP"})) '
                       '/ clamp_min(sum(nbu_status_count{action="BACKUP"}), 1) * 100',
                       0, 11, 5, 5, unit="percent", color_mode="background",
                       thresholds=[{"color": "red", "value": None}, {"color": "yellow", "value": 90}, {"color": "green", "value": 99}]))
     out.append(p.stat("Failed backups / Échecs BACKUP",
                       'sum(nbu_status_count{action="BACKUP"}) '
-                      '- sum(nbu_status_count{action="BACKUP",status="0"})',
+                      '- (sum(nbu_status_count{action="BACKUP",status="0"}) or 0 * sum(nbu_status_count{action="BACKUP"}))',
                       5, 11, 5, 5,
                       thresholds=[{"color": "green", "value": None}, {"color": "red", "value": 1}]))
     out.append(p.stat("Storage % used / Stockage % utilisé",
@@ -45,7 +45,7 @@ def build():
                       10, 11, 4, 5, unit="percent",
                       thresholds=[{"color": "green", "value": None}, {"color": "yellow", "value": 80}, {"color": "red", "value": 90}]))
     out.append(p.stat("Infected files / Fichiers infectés",
-                      "sum(nbu_malware_files_infected)", 14, 11, 5, 5,
+                      "sum(nbu_malware_files_infected) or 0 * sum(nbu_malware_scan_count)", 14, 11, 5, 5,
                       thresholds=[{"color": "green", "value": None}, {"color": "red", "value": 1}]))
     out.append(p.barchart("Alerts by severity / Alertes par sévérité",
                           "sum by (severity) (nbu_alerts_count)", 19, 11, 5, 5,

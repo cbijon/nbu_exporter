@@ -138,7 +138,7 @@ def _table_missing(title, description, expr, x, y, w, h, value_col):
             {
                 "id": "organize",
                 "options": {
-                    "excludeByName": {"Time": True, "__name__": True, "action": True},
+                    "excludeByName": {"Time": True, "__name__": True, "action": True, "instance": True, "job": True},
                     "indexByName": {"site": 0, "client": 1, "policy": 2, "Value": 3},
                     "renameByName": {"site": "Site", "client": "Client", "policy": "Politique / Policy", "Value": value_col},
                 },
@@ -230,21 +230,21 @@ def build():
     out.append(_gauge(
         "Taux BACKUP (tous sites)",
         "Ratio jobs BACKUP réussis / total dans la fenêtre de scraping, tous sites.",
-        'sum(nbu_status_count{action="BACKUP", status="0", site=~"$site"}) / clamp_min(sum(nbu_status_count{action="BACKUP", site=~"$site"}), 1) * 100',
+        '(sum(nbu_status_count{action="BACKUP", status="0", site=~"$site"}) or 0 * sum(nbu_status_count{action="BACKUP", site=~"$site"})) / clamp_min(sum(nbu_status_count{action="BACKUP", site=~"$site"}), 1) * 100',
         0, 16, 8, 6,
         legend="BACKUP",
     ))
     out.append(_gauge(
         "Taux DUPLICATION (tous sites)",
         "Ratio jobs de copie bande (DUPLICATION) réussis / total.",
-        'sum(nbu_status_count{action="DUPLICATION", status="0", site=~"$site"}) / clamp_min(sum(nbu_status_count{action="DUPLICATION", site=~"$site"}), 1) * 100',
+        '(sum(nbu_status_count{action="DUPLICATION", status="0", site=~"$site"}) or 0 * sum(nbu_status_count{action="DUPLICATION", site=~"$site"})) / clamp_min(sum(nbu_status_count{action="DUPLICATION", site=~"$site"}), 1) * 100',
         8, 16, 8, 6,
         legend="DUPLICATION",
     ))
     out.append(_gauge(
         "Taux IMPORT / AIR (tous sites)",
         "Ratio jobs IMPORT réussis / total. Mesure la fiabilité de la réplication inter-site.",
-        'sum(nbu_status_count{action="IMPORT", status="0", site=~"$site"}) / clamp_min(sum(nbu_status_count{action="IMPORT", site=~"$site"}), 1) * 100',
+        '(sum(nbu_status_count{action="IMPORT", status="0", site=~"$site"}) or 0 * sum(nbu_status_count{action="IMPORT", site=~"$site"})) / clamp_min(sum(nbu_status_count{action="IMPORT", site=~"$site"}), 1) * 100',
         16, 16, 8, 6,
         legend="IMPORT",
     ))
@@ -299,7 +299,7 @@ def build():
     ))
     out.append(p.bar_gauge(
         "Taux BACKUP par site / BACKUP success rate per site",
-        'sum by (site) (nbu_status_count{action="BACKUP", status="0", site=~"$site"}) / clamp_min(sum by (site) (nbu_status_count{action="BACKUP", site=~"$site"}), 1) * 100',
+        '(sum by (site) (nbu_status_count{action="BACKUP", status="0", site=~"$site"}) or 0 * sum by (site) (nbu_status_count{action="BACKUP", site=~"$site"})) / clamp_min(sum by (site) (nbu_status_count{action="BACKUP", site=~"$site"}), 1) * 100',
         16, 47, 8, 6,
         unit="percent",
         thresholds=[{"color": "red", "value": None}, {"color": "yellow", "value": 70}, {"color": "green", "value": 90}],
@@ -386,7 +386,7 @@ def build():
 
     out.append(p.barchart(
         "Lecteurs UP par site / Tape drives UP per site",
-        'sum by (site) (nbu_tape_drives_count{status="DRIVE_STATUS_UP", site=~"$site"})',
+        'sum by (site) (nbu_tape_drives_count{status="DRIVE_STATUS_UP", site=~"$site"}) or 0 * sum by (site) (nbu_tape_drives_count{site=~"$site"})',
         0, 87, 8, 8,
         legend="{{site}}",
     ))
@@ -398,7 +398,7 @@ def build():
     ))
     out.append(p.timeseries(
         "Lecteurs DOWN dans le temps par site / DOWN drives over time per site",
-        [p.target('sum by (site) (nbu_tape_drives_count{status="DRIVE_STATUS_DOWN", site=~"$site"})', "{{site}}")],
+        [p.target('sum by (site) (nbu_tape_drives_count{status="DRIVE_STATUS_DOWN", site=~"$site"}) or 0 * sum by (site) (nbu_tape_drives_count{site=~"$site"})', "{{site}}")],
         16, 87, 8, 8,
     ))
 

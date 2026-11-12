@@ -137,6 +137,17 @@
           "instant": true,
           "refId": "A"
         }
+      ],
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "reducers": [
+              "lastNotNull"
+            ],
+            "mode": "seriesToRows"
+          }
+        }
       ]
     },
     {
@@ -276,7 +287,7 @@
           "legendFormat": "{{site}} / infected / infect\u00e9s",
           "range": true,
           "instant": false,
-          "refId": "A"
+          "refId": "B"
         }
       ]
     },
@@ -322,6 +333,17 @@
           "range": false,
           "instant": true,
           "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "reducers": [
+              "lastNotNull"
+            ],
+            "mode": "seriesToRows"
+          }
         }
       ]
     },
@@ -381,6 +403,17 @@
           "instant": true,
           "refId": "A"
         }
+      ],
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "reducers": [
+              "lastNotNull"
+            ],
+            "mode": "seriesToRows"
+          }
+        }
       ]
     },
     {
@@ -425,6 +458,17 @@
           "range": false,
           "instant": true,
           "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "reducers": [
+              "lastNotNull"
+            ],
+            "mode": "seriesToRows"
+          }
         }
       ]
     },

@@ -1,6 +1,6 @@
 """Backup lifecycle dashboard: per-client compliance across all phases (BACKUP → DUPLICATION → IMPORT)."""
 
-from grafana.gen.panels import ds, nid, gridpos, reset_ids, piechart, state_timeline, bar_gauge, text_panel
+from grafana.gen.panels import ds, nid, gridpos, reset_ids, piechart, state_timeline, bar_gauge, text_panel, target
 from grafana.gen.variables import dashboard, client_filter_var
 
 # ── Lifecycle flow diagram (Markdown) ─────────────────────────────────────────
@@ -143,7 +143,7 @@ def _table_lifecycle():
             {
                 "id": "organize",
                 "options": {
-                    "excludeByName": {"Time": True, "__name__": True},
+                    "excludeByName": {"Time": True, "__name__": True, "instance": True, "job": True},
                     "indexByName": {"client": 0, "policy": 1, "action": 2, "site": 3, "Value": 4},
                     "renameByName": {
                         "client": "Client",
@@ -215,7 +215,7 @@ def _table_overdue(title, description, action_filter, x, y, w, h, value_col, age
             {
                 "id": "organize",
                 "options": {
-                    "excludeByName": {"Time": True, "__name__": True, "action": True},
+                    "excludeByName": {"Time": True, "__name__": True, "action": True, "instance": True, "job": True},
                     "indexByName": {"site": 0, "client": 1, "policy": 2, "Value": 3},
                     "renameByName": {"site": "Site", "client": "Client", "policy": "Politique / Policy", "Value": value_col},
                 },
@@ -322,8 +322,8 @@ def _timeseries_duration(y):
         "gridPos": {"x": 0, "y": y, "w": 24, "h": 8},
         "datasource": ds(),
         "targets": [
-            {"datasource": ds(), "expr": 'histogram_quantile(0.95, sum by (policy_type, le) (rate(nbu_job_duration_seconds_bucket{action="BACKUP", site=~"$site"}[$__rate_interval])))', "refId": "A", "legendFormat": "P95 {{policy_type}}"},
-            {"datasource": ds(), "expr": 'histogram_quantile(0.50, sum by (policy_type, le) (rate(nbu_job_duration_seconds_bucket{action="BACKUP", site=~"$site"}[$__rate_interval])))', "refId": "B", "legendFormat": "P50 {{policy_type}}"},
+            {"datasource": ds(), "expr": 'histogram_quantile(0.95, sum by (policy_type, le) (nbu_job_duration_seconds_bucket{action="BACKUP", site=~"$site"}))', "refId": "A", "legendFormat": "P95 {{policy_type}}"},
+            {"datasource": ds(), "expr": 'histogram_quantile(0.50, sum by (policy_type, le) (nbu_job_duration_seconds_bucket{action="BACKUP", site=~"$site"}))', "refId": "B", "legendFormat": "P50 {{policy_type}}"},
         ],
         "options": {
             "tooltip": {"mode": "multi", "sort": "desc"},
@@ -380,21 +380,21 @@ def build():
         _gauge(
             "Sauvegarde primaire / Primary Backup",
             "Taux de succès des jobs BACKUP dans la fenêtre de scraping. Objectif : >90%.",
-            'sum(nbu_client_jobs_count{action="BACKUP", status="0", client=~"$client_filter", site=~"$site"}) / clamp_min(sum(nbu_client_jobs_count{action="BACKUP", client=~"$client_filter", site=~"$site"}), 1) * 100',
+            '(sum(nbu_client_jobs_count{action="BACKUP", status="0", client=~"$client_filter", site=~"$site"}) or 0 * sum(nbu_client_jobs_count{action="BACKUP", client=~"$client_filter", site=~"$site"})) / clamp_min(sum(nbu_client_jobs_count{action="BACKUP", client=~"$client_filter", site=~"$site"}), 1) * 100',
             0, 16, 8, 6,
             legend="BACKUP",
         ),
         _gauge(
             "Copie bande / Tape Duplication",
             "Taux de succès des jobs DUPLICATION (copie vers bande via SLP). Objectif : >90%.",
-            'sum(nbu_client_jobs_count{action="DUPLICATION", status="0", client=~"$client_filter", site=~"$site"}) / clamp_min(sum(nbu_client_jobs_count{action="DUPLICATION", client=~"$client_filter", site=~"$site"}), 1) * 100',
+            '(sum(nbu_client_jobs_count{action="DUPLICATION", status="0", client=~"$client_filter", site=~"$site"}) or 0 * sum(nbu_client_jobs_count{action="DUPLICATION", client=~"$client_filter", site=~"$site"})) / clamp_min(sum(nbu_client_jobs_count{action="DUPLICATION", client=~"$client_filter", site=~"$site"}), 1) * 100',
             8, 16, 8, 6,
             legend="DUPLICATION",
         ),
         _gauge(
             "Réplication inter-site (IMPORT)",
             "Taux de succès des jobs IMPORT (Auto Image Replication). Objectif : >90%.",
-            'sum(nbu_client_jobs_count{action="IMPORT", status="0", client=~"$client_filter", site=~"$site"}) / clamp_min(sum(nbu_client_jobs_count{action="IMPORT", client=~"$client_filter", site=~"$site"}), 1) * 100',
+            '(sum(nbu_client_jobs_count{action="IMPORT", status="0", client=~"$client_filter", site=~"$site"}) or 0 * sum(nbu_client_jobs_count{action="IMPORT", client=~"$client_filter", site=~"$site"})) / clamp_min(sum(nbu_client_jobs_count{action="IMPORT", client=~"$client_filter", site=~"$site"}), 1) * 100',
             16, 16, 8, 6,
             legend="IMPORT",
         ),
@@ -408,12 +408,17 @@ def build():
             legend="{{client}}",
             thresholds=[{"color": "red", "value": None}, {"color": "green", "value": 0.5}],
         ),
-        piechart(
+        dict(piechart(
             "Distribution de conformité / Compliance distribution",
-            'clamp_max(sum(nbu_client_last_job_success_seconds{action="BACKUP", client=~"$client_filter", site=~"$site"} > (time() - 90000)) or on() vector(0), 9999)',
+            'count(time() - nbu_client_last_job_success_seconds{action="BACKUP", client=~"$client_filter", site=~"$site"} <= 90000) or on() vector(0)',
             16, 23, 8, 6,
-            legend="Conformes",
-        ),
+            legend="Conformes / Compliant",
+        ), targets=[
+            target('count(time() - nbu_client_last_job_success_seconds{action="BACKUP", client=~"$client_filter", site=~"$site"} <= 90000) or on() vector(0)',
+                   "Conformes / Compliant", instant=True),
+            target('count(time() - nbu_client_last_job_success_seconds{action="BACKUP", client=~"$client_filter", site=~"$site"} > 90000) or on() vector(0)',
+                   "Non conformes (>25h) / Non-compliant", instant=True),
+        ]),
         bar_gauge(
             "Clients par ancienneté du backup / Clients by backup age",
             'sort_desc(time() - nbu_client_last_job_success_seconds{action="BACKUP", client=~"$client_filter", site=~"$site"})',

@@ -239,6 +239,11 @@ def barchart(title, expr, x, y, w, h, legend="{{policy_type}}", unit="none"):
             "xTickLabelRotation": 0,
         },
         "targets": [target(expr, legend, instant=True)],
+        # One row per series, labelled by its legend: without this the bar chart's
+        # category axis is the (single) instant timestamp and bars carry no names.
+        "transformations": [
+            {"id": "reduce", "options": {"reducers": ["lastNotNull"], "mode": "seriesToRows"}},
+        ],
     }
 
 
