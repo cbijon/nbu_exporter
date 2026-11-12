@@ -1,6 +1,9 @@
 ---
 server:
-  host: "localhost"
+  # Listen address. "0.0.0.0" is required in a container (docker-compose,
+  # Kubernetes): with "localhost" the exporter binds the container loopback only,
+  # Prometheus cannot scrape it, yet the /livez healthcheck still passes.
+  host: "0.0.0.0"
   port: "9440"
   uri: "/metrics"
   scrapingInterval: "1h"

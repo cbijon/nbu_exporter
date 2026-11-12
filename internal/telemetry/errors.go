@@ -31,9 +31,10 @@ const (
 The server may be running a version of NetBackup that does not support API version %s.
 
 Supported API versions:
-  - 3.0  (NetBackup 10.0-10.4)
+  - 10.0 (NetBackup 10.0-10.4)
   - 12.0 (NetBackup 10.5)
   - 13.0 (NetBackup 11.0)
+  - 14.0 (NetBackup 11.1-11.2)
 
 Troubleshooting steps:
 1. Verify your NetBackup server version: bpgetconfig -g | grep VERSION

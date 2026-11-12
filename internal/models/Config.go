@@ -21,7 +21,7 @@ const (
 	APIVersion120 = "12.0"
 	// APIVersion130 represents NetBackup 11.0 API version
 	APIVersion130 = "13.0"
-	// APIVersion140 represents NetBackup 11.2 API version
+	// APIVersion140 represents the NetBackup 11.1 / 11.2 API version (introduced in 11.1)
 	APIVersion140 = "14.0"
 )
 
@@ -209,7 +209,7 @@ type PerClientConfig struct {
 // APIVersion is intentionally NOT defaulted here. An omitted apiVersion is left
 // empty so the client performs automatic version detection
 // (14.0 -> 13.0 -> 12.0 -> 10.0); forcing a default would silently disable
-// auto-detect and hard-fail the exporter against NetBackup < 11.2.
+// auto-detect and hard-fail the exporter against NetBackup < 11.1.
 //
 // This method is called automatically by Validate() before validation checks.
 func (c *Config) SetDefaults() {

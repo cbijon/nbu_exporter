@@ -13,10 +13,10 @@
 | `nbu_jobs_count` | `action`, `policy_type`, `status` | Number of jobs by type, policy, and status |
 | `nbu_jobs_bytes` | `action`, `policy_type`, `status` | Total bytes transferred by jobs |
 | `nbu_status_count` | `action`, `status` | Job count aggregated by action and status |
-| `nbu_jobs_state_count` | `action`, `state` | Job count per lifecycle state (e.g. `ACTIVE`, `QUEUED`, `DONE`) |
-| `nbu_jobs_queued_count` | `action`, `reason` | Queued job count per NetBackup queue reason code |
+| `nbu_jobs_state_count` | `action`, `state` | Job count per state: `DONE` = finished inside the scraping window; `ACTIVE`/`QUEUED`/… = point-in-time count of jobs not finished yet (separate `state ne 'DONE'` query) |
+| `nbu_jobs_queued_count` | `action`, `reason` | Jobs currently queued, per NetBackup `jobQueueReason` code (point-in-time) |
 | `nbu_jobs_files_count` | `action`, `policy_type` | Total number of files processed by jobs |
-| `nbu_jobs_dedup_ratio` | `action`, `policy_type` | Mean deduplication ratio across jobs (emitted only when jobs exist) |
+| `nbu_jobs_dedup_ratio` | `action`, `policy_type` | Mean deduplication ratio over jobs that report one (`dedupRatio > 0`); absent when none did |
 | `nbu_job_duration_seconds` | `action`, `policy_type` | Histogram of completed job durations in seconds |
 
 The `nbu_job_duration_seconds` histogram covers completed jobs only (those with an
@@ -44,7 +44,7 @@ The `nbu_job_duration_seconds` histogram covers completed jobs only (those with 
 These metrics are exposed by optional sub-collectors. **All default to disabled** — enable
 only the ones your appliance and account permissions support. They are graceful: a failing
 endpoint is logged and skipped without affecting core storage/jobs metrics or flipping
-`nbu_up` to `0`. The alerts/malware/catalog/SLO collectors require NetBackup 11.2 (API
+`nbu_up` to `0`. The alerts/malware/catalog/SLO collectors require NetBackup 11.1+ (API
 `version=14.0`); the **`tape`** collector works on older releases too (`/storage/drives` on
 NBU 10.0+; `/storage/tape-media`, `/storage/robots-device-hosts`, `/storage/tape-volume-pools`
 and `/storage/disk-pools` on 10.5+).
@@ -133,7 +133,7 @@ collectors:
 |--------|--------|-------------|
 | `nbu_up` | — | `1` if any collection succeeded, `0` if all collections failed |
 | `nbu_api_version` | `version` | Currently active NetBackup API version (14.0, 13.0, 12.0, or 10.0) |
-| `nbu_response_time_ms` | — | NetBackup API response time in milliseconds |
+| `nbu_response_time_ms` | `site` | Duration of the `storage-units` API request in the latest collection cycle (ms) |
 | `nbu_last_scrape_timestamp_seconds` | `source` | Unix timestamp of the last successful collection (`source`: `storage` or `jobs`) |
 | `nbu_exporter_build_info` | `version`, `goversion` | Exporter build info; constant `1`, with the running exporter version and Go version. **No `site` label** — it describes the exporter process, not a NetBackup primary. |
 

@@ -26,12 +26,12 @@ nbuservers:
       host: "nbu-master.my.domain"
       port: "1556"
       # apiVersion: NOT SPECIFIED — auto-detects highest supported version
-      # Detection order: 14.0 (NBU 11.2) → 13.0 (NBU 11.0) → 12.0 (NBU 10.5) → 10.0 (NBU 10.0-10.4)
+      # Detection order: 14.0 (NBU 11.1/11.2) → 13.0 (NBU 11.0) → 12.0 (NBU 10.5) → 10.0 (NBU 10.0-10.4)
       apiKey: "your-api-key-here"
       insecureSkipVerify: false
 
 # Optional: opt-in metric collectors (all default to disabled).
-# alerts/malware/catalog/slo require NetBackup 11.2 (API version 14.0).
+# alerts/malware/catalog/slo require NetBackup 11.1+ (API version 14.0).
 collectors:
     alerts:  { enabled: false }
     malware: { enabled: false }

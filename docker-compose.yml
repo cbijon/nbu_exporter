@@ -27,14 +27,18 @@ services:
           cpus: "0.25"
           memory: 128M
     environment:
-      # Single-server quickstart: set these in a .env file (gitignored).
-      # config.yaml is the source of truth — these vars are only consumed
-      # when config.yaml references them as ${NBU1_HOSTNAME} / ${NBU1_APIKEY}.
-      # For multiple servers add more entries in config.yaml (literal values
-      # or your own env references) rather than extending this block.
+      # Set these in a .env file (gitignored). config.yaml is the source of
+      # truth — these vars are only consumed where config.yaml references them
+      # (${NBU1_HOSTNAME}, ${NBU2_APIKEY}, ...). The .env file is NOT mounted
+      # into the container, so every variable config.yaml references must be
+      # forwarded here. NBU2_* feed the second nbuservers: entry (multi-site);
+      # they are ignored while that entry stays commented out.
       - NBU1_HOSTNAME=${NBU1_HOSTNAME:-master.my.domain}
       - NBU1_APIKEY=${NBU1_APIKEY:-}
       - NBU1_SKIP_CERTIFICATE=${NBU1_SKIP_CERTIFICATE:-false}
+      - NBU2_HOSTNAME=${NBU2_HOSTNAME:-}
+      - NBU2_APIKEY=${NBU2_APIKEY:-}
+      - NBU2_SKIP_CERTIFICATE=${NBU2_SKIP_CERTIFICATE:-false}
     networks:
       - monitoring
 

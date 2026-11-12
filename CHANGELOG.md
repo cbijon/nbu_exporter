@@ -7,7 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Tape collector matched no real NetBackup release (10.5 → 11.2 specs): `/storage/tape-media` and `/storage/tape-volume-pools` are cursor-paginated (`page[after]`, string `meta.pagination.next`) — the offset loop could re-read page 1 up to 1000× and inflate `nbu_tape_media_count`, and the integer `next` made every `tape-volume-pools` response fail to decode (no `nbu_tape_pool_partially_full`). Media `robot_type` is read from the nested `robot{}` object (was always empty); drive names come from `data[].id`, media server falls back to `devicePaths[]`. Drives and disk-pools now follow offset pagination with a non-advancing guard.
+- `nbu_jobs_queued_count` and the `ACTIVE`/`QUEUED` part of `nbu_jobs_state_count` were always empty: the windowed `endTime gt` filter never matches unfinished jobs. A second `state ne 'DONE'` pass now feeds the point-in-time state/queue breakdowns (failure only degrades that breakdown).
+- `nbu_jobs_dedup_ratio` averaged in jobs reporting no ratio (tape duplications, imports), dragging the MSDP mean toward 0; only jobs with `dedupRatio > 0` now contribute.
+- `nbu_response_time_ms` was declared but never emitted; it now reports the storage-units request duration per site.
+- `nbuservers[].host` / `apiKey` `${VAR}` references are expanded (upstream only expanded the legacy `nbuserver:` block), with the empty-credential guard per site.
+- Alerting: `NbuBackupSuccessRateLow` never fired when *every* backup failed (empty numerator) and was global; it is now per site with a zero fallback. `NbuJobsQueuedSustained`, `NbuStorageAlmostFull`/`Warning` are per site (same STU name on two masters no longer merges). `NbuInterSiteDivergence` now also flags a reachable site with no BACKUP job at all. New `nbu.rules_test.yml`; CI runs promtool on all rule files.
+- Dashboards: panels with several queries shared refId `A` (Grafana dropped/errored them — e.g. Job duration p50/p95, Used capacity); refIds are now assigned by the generator and validated. Success-rate / failed / DOWN / UNKNOWN / infected stats show 0 instead of "No data" when the underlying data exists; bar charts are labelled per series; lifecycle duration quantiles no longer apply `rate()` to the per-window histogram; compliance pie counts compliant vs non-compliant clients; tables hide `instance`/`job`.
+- Deployment: root `config.yaml` listens on `0.0.0.0` (with `localhost` Prometheus could not scrape the container while the healthcheck stayed green); compose files forward `NBU2_*` for the second master and `NBU1_SKIP_CERTIFICATE` (ghcr); `NBU_TAG`/`NBU_IMAGE_OWNER` select the GHCR image; GoReleaser publishes under the repository owner (forks can release); the phantom `otel-collector` scrape job is commented out.
+
+### Changed
+
+- API version mapping: `14.0` is introduced by NetBackup **11.1** (per the 11.1 API Getting Started "What's New"), not 11.2 — docs, comments, examples and the HTTP 406 help text updated (the latter still listed the removed `3.0`). Example configs no longer pin `13.0` for multi-site.
+- Synced with upstream `fjacquet/nbu_exporter` (64 commits: `/livez`/`/readyz`, env-driven TLS skip, `${VAR:-default}`, build-info metric, Alpine image, systemd unit); duplicate `nbu-lifecycle.rules.yml` dropped in favour of the per-site rule files.
+
 ### Security
+
+- Go 1.27.4 (`go` directive, builder image) to clear GO-2026-6859 (`net/http`).
 
 - Build with Go 1.27.2 to fix the Go 1.27.1 standard library vulnerabilities flagged by govulncheck (GO-2026-6603, GO-2026-6605, GO-2026-6607, GO-2026-6608, GO-2026-6610, GO-2026-6611, GO-2026-6613, GO-2026-6617 in `net/http`, `crypto/tls`, `mime/multipart`).
 - Update dependencies with `go get -u ./...`: `golang.org/x/net` v0.59.0 -> v0.60.0, `golang.org/x/sys` v0.48.0 -> v0.49.0, `golang.org/x/sync` v0.23.0 -> v0.24.0, `github.com/prometheus/client_golang` v1.24.1 -> v1.25.0, `genproto` googleapis api/rpc refreshed. `google.golang.org/grpc` kept at 1.83.2 per the existing note.

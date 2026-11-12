@@ -16,7 +16,7 @@ This directory contains example configuration files for different NetBackup depl
 **Features:**
 - No `apiVersion` field specified
 - Automatically detects highest supported version (14.0 → 13.0 → 12.0 → 10.0)
-- Works with NetBackup 10.0, 10.5, 11.0, and 11.2 without changes
+- Works with NetBackup 10.0, 10.5, 11.0, 11.1 and 11.2 without changes
 - Adds 1-3 seconds to startup for version detection
 
 **Best for:** Mixed environments, future-proof deployments
@@ -196,7 +196,7 @@ When `apiVersion` is **not specified**, the exporter performs automatic detectio
 The exporter tries supported API versions in descending order and uses the first
 that responds successfully:
 
-1. **Try API 14.0** (NetBackup 11.2+)
+1. **Try API 14.0** (NetBackup 11.1+)
    - Makes lightweight API call with version 14.0
    - If successful (HTTP 200), uses version 14.0
    - If not supported (HTTP 406), tries next version

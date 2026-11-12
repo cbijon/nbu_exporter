@@ -31,7 +31,7 @@ nbuservers:
       uri: "/netbackup"
       host: "nbu-paris.my.domain"
       port: "1556"
-      apiVersion: "13.0"        # Optional; omit to auto-detect (14.0 -> 13.0 -> 12.0 -> 10.0)
+      # apiVersion: omitted -> each site auto-detects its own version (14.0 -> 13.0 -> 12.0 -> 10.0)
       apiKey: "paris-api-key-here"  # Generate from the NetBackup UI
       insecureSkipVerify: false
 
@@ -40,7 +40,6 @@ nbuservers:
       uri: "/netbackup"
       host: "nbu-lyon.my.domain"
       port: "1556"
-      apiVersion: "13.0"
       apiKey: "lyon-api-key-here"
       insecureSkipVerify: false
 

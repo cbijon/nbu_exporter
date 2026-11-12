@@ -36,8 +36,8 @@ See the [Installation guide](getting-started/installation.md) for full details.
 
 | NetBackup Version | API Version | Support Status |
 |-------------------|-------------|----------------|
-| 11.2              | 14.0        | Fully Supported |
-| 11.0 - 11.1       | 13.0        | Fully Supported |
+| 11.1 - 11.2       | 14.0        | Fully Supported |
+| 11.0              | 13.0        | Fully Supported |
 | 10.5              | 12.0        | Fully Supported |
 | 10.0 - 10.4       | 10.0        | Fully Supported |
 

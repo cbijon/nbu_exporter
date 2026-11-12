@@ -69,11 +69,23 @@ collectors:
 
 ### Two sites (multi-site)
 
-```bash
-cp docs/config-examples/config-multisite.yaml config.yaml
-```
+The shipped `config.yaml` already contains a commented second `nbuservers:` entry wired
+to `NBU2_*` variables. To add the second master after a single-site deployment:
 
-Edit to replace the two `host` / `apiKey` / `site` placeholders. Each `site` value becomes a label on every metric — keep it short (e.g. `paris`, `lyon`).
+1. Uncomment the `- site: "secondary"` block in `config.yaml` (rename the site if you
+   like — each `site` value becomes a label on every metric; keep it short, e.g. `paris`).
+2. Add to `.env`: `NBU2_HOSTNAME`, `NBU2_APIKEY` (an API key generated **on that
+   master**) and, if needed, `NBU2_SKIP_CERTIFICATE=true`.
+3. `docker compose up -d` (recreates the exporter with the new variables) — or send
+   `SIGHUP` if only `config.yaml` changed and the variables were already present.
+
+`docker-compose.yml` forwards `NBU1_*` and `NBU2_*` into the container (the `.env` file
+itself is not mounted). For a third master, add `NBU3_*` lines to the `environment:`
+block as well. Each site detects its own API version, so masters on different
+NetBackup releases can coexist; a master that is down only sets `nbu_up{site}=0` and the
+other sites keep reporting.
+
+Alternatively start from `docs/config-examples/config-multisite.yaml`.
 
 ---
 

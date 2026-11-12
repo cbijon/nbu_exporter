@@ -80,7 +80,7 @@ signs:
 
 dockers:
   - image_templates:
-      - "ghcr.io/fjacquet/nbu_exporter:{{ .Version }}-amd64"
+      - 'ghcr.io/{{ envOrDefault "GITHUB_REPOSITORY_OWNER" "fjacquet" | tolower }}/nbu_exporter:{{ .Version }}-amd64'
     ids:
       - others
     use: buildx
@@ -90,12 +90,12 @@ dockers:
       - "--platform=linux/amd64"
       - "--label=org.opencontainers.image.title={{ .ProjectName }}"
       - "--label=org.opencontainers.image.version={{ .Version }}"
-      - "--label=org.opencontainers.image.source=https://github.com/fjacquet/{{ .ProjectName }}"
+      - '--label=org.opencontainers.image.source=https://github.com/{{ envOrDefault "GITHUB_REPOSITORY_OWNER" "fjacquet" }}/{{ .ProjectName }}'
       - "--label=org.opencontainers.image.created={{ .Date }}"
     extra_files:
       - config.yaml
   - image_templates:
-      - "ghcr.io/fjacquet/nbu_exporter:{{ .Version }}-arm64"
+      - 'ghcr.io/{{ envOrDefault "GITHUB_REPOSITORY_OWNER" "fjacquet" | tolower }}/nbu_exporter:{{ .Version }}-arm64'
     ids:
       - others
     use: buildx
@@ -106,20 +106,20 @@ dockers:
       - "--platform=linux/arm64"
       - "--label=org.opencontainers.image.title={{ .ProjectName }}"
       - "--label=org.opencontainers.image.version={{ .Version }}"
-      - "--label=org.opencontainers.image.source=https://github.com/fjacquet/{{ .ProjectName }}"
+      - '--label=org.opencontainers.image.source=https://github.com/{{ envOrDefault "GITHUB_REPOSITORY_OWNER" "fjacquet" }}/{{ .ProjectName }}'
       - "--label=org.opencontainers.image.created={{ .Date }}"
     extra_files:
       - config.yaml
 
 docker_manifests:
-  - name_template: "ghcr.io/fjacquet/nbu_exporter:{{ .Version }}"
+  - name_template: 'ghcr.io/{{ envOrDefault "GITHUB_REPOSITORY_OWNER" "fjacquet" | tolower }}/nbu_exporter:{{ .Version }}'
     image_templates:
-      - "ghcr.io/fjacquet/nbu_exporter:{{ .Version }}-amd64"
-      - "ghcr.io/fjacquet/nbu_exporter:{{ .Version }}-arm64"
-  - name_template: "ghcr.io/fjacquet/nbu_exporter:latest"
+      - 'ghcr.io/{{ envOrDefault "GITHUB_REPOSITORY_OWNER" "fjacquet" | tolower }}/nbu_exporter:{{ .Version }}-amd64'
+      - 'ghcr.io/{{ envOrDefault "GITHUB_REPOSITORY_OWNER" "fjacquet" | tolower }}/nbu_exporter:{{ .Version }}-arm64'
+  - name_template: 'ghcr.io/{{ envOrDefault "GITHUB_REPOSITORY_OWNER" "fjacquet" | tolower }}/nbu_exporter:latest'
     image_templates:
-      - "ghcr.io/fjacquet/nbu_exporter:{{ .Version }}-amd64"
-      - "ghcr.io/fjacquet/nbu_exporter:{{ .Version }}-arm64"
+      - 'ghcr.io/{{ envOrDefault "GITHUB_REPOSITORY_OWNER" "fjacquet" | tolower }}/nbu_exporter:{{ .Version }}-amd64'
+      - 'ghcr.io/{{ envOrDefault "GITHUB_REPOSITORY_OWNER" "fjacquet" | tolower }}/nbu_exporter:{{ .Version }}-arm64'
 
 homebrew_casks:
   - # Casks are macOS-only by definition; references the darwin-only archive.

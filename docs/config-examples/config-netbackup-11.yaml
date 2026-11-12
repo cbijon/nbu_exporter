@@ -10,8 +10,8 @@
 # API Version: 13.0
 # Detection: Disabled (explicit version)
 #
-# For NetBackup 11.2, use apiVersion: "14.0" to enable additional collectors
-# (alerts, malware, catalog, slo).
+# For NetBackup 11.1 and 11.2, use apiVersion: "14.0" (or omit apiVersion to
+# auto-detect) to enable the additional collectors (alerts, malware, catalog, slo).
 
 server:
     host: "localhost"
@@ -32,7 +32,7 @@ nbuservers:
       insecureSkipVerify: false
 
 # Optional: opt-in metric collectors available from NetBackup 10.5+.
-# alerts/malware/catalog/slo require NetBackup 11.2 (API version 14.0).
+# alerts/malware/catalog/slo require NetBackup 11.1+ (API version 14.0).
 collectors:
     tape:    { enabled: true }
     perClient:
