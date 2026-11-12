@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -76,6 +77,7 @@ func TestFetchJobDetails_BatchProcessing(t *testing.T) {
 
 // TestFetchJobDetails_BatchPagination verifies pagination works correctly with batch responses
 func TestFetchJobDetails_BatchPagination(t *testing.T) {
+	liveCalls := 0
 	callCount := 0
 	jobsPerPage := 100 // Simulate first page with 100 jobs
 	jobsLastPage := 50 // Second page with 50 jobs
@@ -83,6 +85,11 @@ func TestFetchJobDetails_BatchPagination(t *testing.T) {
 	secondPageCursor := ""
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("filter") == liveJobsFilter {
+			liveCalls++
+			_, _ = w.Write([]byte(`{"data":[]}`))
+			return
+		}
 		callCount++
 
 		var response *models.Jobs
@@ -119,6 +126,9 @@ func TestFetchJobDetails_BatchPagination(t *testing.T) {
 	// Verify exactly 2 API calls were made (2 pages)
 	if callCount != 2 {
 		t.Errorf("Expected 2 API calls for pagination, got %d", callCount)
+	}
+	if liveCalls != 1 {
+		t.Errorf("Expected exactly 1 live (non-DONE) jobs query, got %d", liveCalls)
 	}
 
 	// Verify the client followed the cursor: the second request carried page[after]=CURSOR2
@@ -292,4 +302,71 @@ func createMixedJobsResponse() *models.Jobs {
 	response.Meta.Pagination.Next = ""
 
 	return response
+}
+
+// TestFetchAllJobsFull_LiveJobs verifies the second, point-in-time pass: jobs that are
+// not DONE (no endTime yet, so never matched by the windowed endTime filter) feed the
+// state and queue breakdowns, but not the windowed count/bytes/status metrics.
+func TestFetchAllJobsFull_LiveJobs(t *testing.T) {
+	var filters []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		filter := r.URL.Query().Get("filter")
+		filters = append(filters, filter)
+		response := &models.Jobs{}
+		if filter == liveJobsFilter {
+			response.Data = make([]models.JobData, 2)
+			response.Data[0].Attributes = models.JobAttributes{JobID: 2, JobType: "BACKUP", State: "ACTIVE"}
+			response.Data[1].Attributes = models.JobAttributes{JobID: 3, JobType: "DUPLICATION", State: jobStateQueued, JobQueueReason: 5}
+		} else {
+			response.Data = make([]models.JobData, 1)
+			response.Data[0].Attributes = models.JobAttributes{JobID: 1, JobType: "BACKUP", State: "DONE", KilobytesTransferred: 1}
+		}
+		w.Header().Set(contentTypeHeader, fmt.Sprintf(contentTypeNetBackupJSONFormat, "14.0"))
+		_ = json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
+
+	client := NewNbuClient(createTestConfig(server.URL, "14.0"))
+	agg, err := FetchAllJobsFull(context.Background(), client, "5m")
+	if err != nil {
+		t.Fatalf("FetchAllJobsFull failed: %v", err)
+	}
+	if len(filters) != 2 || !strings.HasPrefix(filters[0], "endTime gt ") || filters[1] != liveJobsFilter {
+		t.Fatalf("expected windowed then live query, got %q", filters)
+	}
+	if got := agg.StateCount[JobStateKey{Action: "BACKUP", State: "ACTIVE"}]; got != 1 {
+		t.Errorf("ACTIVE state count = %v, want 1", got)
+	}
+	if got := agg.QueuedCount[JobQueueKey{Action: "DUPLICATION", Reason: "5"}]; got != 1 {
+		t.Errorf("queued count by reason = %v, want 1", got)
+	}
+	total := 0.0
+	for _, v := range agg.Count {
+		total += v
+	}
+	if total != 1 {
+		t.Errorf("windowed job count = %v, want 1 (live jobs must not be counted)", total)
+	}
+}
+
+// A failing live pass degrades only the ACTIVE/QUEUED breakdown.
+func TestFetchAllJobsFull_LiveJobsFailureIsNonFatal(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("filter") == liveJobsFilter {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(`{"errorCode":9001}`))
+			return
+		}
+		w.Header().Set(contentTypeHeader, fmt.Sprintf(contentTypeNetBackupJSONFormat, "14.0"))
+		_, _ = w.Write([]byte(`{"data":[{"attributes":{"jobId":1,"jobType":"BACKUP","state":"DONE"}}]}`))
+	}))
+	defer server.Close()
+
+	agg, err := FetchAllJobsFull(context.Background(), NewNbuClient(createTestConfig(server.URL, "14.0")), "5m")
+	if err != nil {
+		t.Fatalf("live-pass failure must not fail the jobs fetch: %v", err)
+	}
+	if agg.StateCount[JobStateKey{Action: "BACKUP", State: "DONE"}] != 1 {
+		t.Errorf("windowed metrics must survive a live-pass failure")
+	}
 }

@@ -921,7 +921,7 @@ func TestSnapshotCollectorEmitsAllSites(t *testing.T) {
 
 	// Publish a two-site snapshot: paris up, lyon down.
 	store.Store(&Snapshot{Sites: map[string]*SiteSnapshot{
-		"paris": {Site: "paris", APIVersion: models.APIVersion130, Up: true},
+		"paris": {Site: "paris", APIVersion: models.APIVersion130, Up: true, ResponseTime: 1500 * time.Microsecond},
 		"lyon":  {Site: "lyon", APIVersion: models.APIVersion130, Up: false},
 	}})
 
@@ -947,6 +947,16 @@ func TestSnapshotCollectorEmitsAllSites(t *testing.T) {
 	}
 	assert.True(t, apiVersionSites["paris"], "up site should emit nbu_api_version")
 	assert.False(t, apiVersionSites["lyon"], "down site must not emit nbu_api_version")
+
+	rtt := map[string]float64{}
+	for _, mf := range mfs {
+		if mf.GetName() == "nbu_response_time_ms" {
+			for _, m := range mf.GetMetric() {
+				rtt[labelValue(m, "site")] = m.GetGauge().GetValue()
+			}
+		}
+	}
+	assert.Equal(t, map[string]float64{"paris": 1.5}, rtt, "response time emitted in ms for the up site only")
 }
 
 // upValuesBySite extracts nbu_up gauge values keyed by their site label.

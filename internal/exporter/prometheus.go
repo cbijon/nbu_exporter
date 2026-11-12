@@ -227,7 +227,7 @@ func newBaseCollector(cfg models.Config, tracing *TracerWrapper) *NbuCollector {
 		tracing: tracing,
 		nbuResponseTime: prometheus.NewDesc(
 			"nbu_response_time_ms",
-			"The server response time in milliseconds",
+			"Duration of the storage-units API request in milliseconds (latest collection cycle)",
 			[]string{"site"}, nil,
 		),
 		nbuDiskSize: prometheus.NewDesc(
@@ -486,6 +486,10 @@ func (c *NbuCollector) exposeSnapshot(ch chan<- prometheus.Metric, site string, 
 	c.exposeJobAggregateMetrics(ch, site, ss.JobAgg)
 
 	ch <- prometheus.MustNewConstMetric(c.nbuAPIVersion, prometheus.GaugeValue, 1, site, ss.APIVersion)
+	if ss.ResponseTime > 0 {
+		ch <- prometheus.MustNewConstMetric(c.nbuResponseTime, prometheus.GaugeValue,
+			float64(ss.ResponseTime.Microseconds())/1000, site)
+	}
 
 	// Re-emit the buffered opt-in sub-collector metrics (already site-labelled).
 	for _, m := range ss.SubMetrics {

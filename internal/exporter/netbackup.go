@@ -28,6 +28,7 @@ const (
 	bytesPerKilobyte = 1024                     // Conversion factor from kilobytes to bytes
 	bytesPerMegabyte = 1024 * 1024              // Conversion factor from megabytes to bytes
 	jobStateQueued   = "QUEUED"                 // Job state indicating the job is waiting for a resource
+	liveJobsFilter   = "state ne 'DONE'"        // OData filter for jobs still running/queued (no endTime yet)
 
 	// Pre-allocation capacity hints for job metrics.
 	// Typical environments have 20-100 unique job type/policy/status combinations:
@@ -156,10 +157,14 @@ func aggregateJob(agg *JobAggregator, attr models.JobAttributes) {
 		agg.QueuedCount[JobQueueKey{Action: attr.JobType, Reason: reason}]++
 	}
 
-	// Files transferred and dedup-ratio mean (per action/policy).
+	// Files transferred and dedup-ratio mean (per action/policy). Only jobs that report
+	// a ratio contribute: tape duplications, imports and non-deduplicating storage
+	// report 0, which would otherwise drag the MSDP mean toward zero.
 	agg.FilesCount[policyKey] += float64(attr.NumberOfFiles)
-	agg.DedupSum[policyKey] += attr.DedupRatio
-	agg.DedupCount[policyKey]++
+	if attr.DedupRatio > 0 {
+		agg.DedupSum[policyKey] += attr.DedupRatio
+		agg.DedupCount[policyKey]++
+	}
 
 	// Duration histogram for completed jobs only (EndTime after StartTime).
 	if !attr.EndTime.IsZero() && attr.EndTime.After(attr.StartTime) {
@@ -178,6 +183,59 @@ func aggregateJob(agg *JobAggregator, attr models.JobAttributes) {
 			}
 		}
 	}
+}
+
+// aggregateLiveJob folds a not-yet-finished job (ACTIVE, QUEUED, ...) into the
+// point-in-time state and queue breakdowns only. Volume, count, status and duration
+// metrics stay scoped to jobs that finished inside the scraping window.
+func aggregateLiveJob(agg *JobAggregator, attr models.JobAttributes) {
+	state := attr.State
+	if state == "" {
+		state = "UNKNOWN"
+	}
+	agg.StateCount[JobStateKey{Action: attr.JobType, State: state}]++
+	if state == jobStateQueued {
+		reason := strconv.Itoa(attr.JobQueueReason)
+		agg.QueuedCount[JobQueueKey{Action: attr.JobType, Reason: reason}]++
+	}
+}
+
+// FetchLiveJobs pages through every job that is not DONE (filter state ne 'DONE') and
+// folds it with aggregateLiveJob. The windowed endTime filter used by FetchJobDetails
+// can never match these jobs — they have no endTime yet — so without this pass the
+// ACTIVE/QUEUED state counts and nbu_jobs_queued_count would always be empty.
+func FetchLiveJobs(ctx context.Context, client *NbuClient, agg *JobAggregator) error {
+	ctx, span := client.tracing.StartSpan(ctx, "netbackup.fetch_live_jobs", trace.SpanKindClient)
+	defer span.End()
+
+	err := HandlePagination(ctx, func(ctx context.Context, cursor string) (string, error) {
+		params := map[string]string{
+			QueryParamLimit:  jobPageLimit,
+			QueryParamSort:   "jobId",
+			QueryParamFilter: liveJobsFilter,
+		}
+		if cursor != "" {
+			params[QueryParamAfter] = cursor
+		}
+		var jobs models.Jobs
+		if err := client.FetchData(ctx, client.cfg.BuildURL(jobsPath, params), &jobs); err != nil {
+			return "", fmt.Errorf("failed to fetch live jobs: %w", err)
+		}
+		for _, job := range jobs.Data {
+			aggregateLiveJob(agg, job.Attributes)
+		}
+		if len(jobs.Data) == 0 || jobs.Meta.Pagination.Next == cursor {
+			return "", nil
+		}
+		return jobs.Meta.Pagination.Next, nil
+	})
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return err
+	}
+	span.SetStatus(codes.Ok, "live jobs fetched")
+	return nil
 }
 
 // FetchJobDetails retrieves a page of job records (up to 100) at the given cursor and
@@ -390,6 +448,12 @@ func FetchAllJobsFull(
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		return nil, err
+	}
+
+	// Point-in-time pass for jobs still running or waiting. A failure here degrades
+	// only the ACTIVE/QUEUED breakdown; the windowed metrics above are kept.
+	if liveErr := FetchLiveJobs(ctx, client, agg); liveErr != nil {
+		log.WithError(liveErr).Warn("jobs: live (non-DONE) job fetch failed; ACTIVE/QUEUED counts omitted this cycle")
 	}
 
 	span.SetStatus(codes.Ok, fmt.Sprintf("Fetched %d jobs across %d pages", totalJobs, pageCount))

@@ -125,12 +125,21 @@ func (tc *TargetCollector) collect(ctx context.Context) *SiteSnapshot {
 	var agg *JobAggregator
 	var sErr, jErr error
 	g, gctx := errgroup.WithContext(ctx)
-	g.Go(func() error { sm, su, sErr = FetchStorageFull(gctx, client); return nil })
+	var storageRTT time.Duration
+	g.Go(func() error {
+		start := time.Now()
+		sm, su, sErr = FetchStorageFull(gctx, client)
+		storageRTT = time.Since(start)
+		return nil
+	})
 	g.Go(func() error { agg, jErr = FetchAllJobsFull(gctx, client, tc.jobWindow()); return nil })
 	_ = g.Wait()
 
 	now := time.Now()
 	ss.StorageMetrics, ss.StorageUnits, ss.JobAgg = sm, su, agg
+	if sErr == nil {
+		ss.ResponseTime = storageRTT
+	}
 	ss.StorageErr, ss.JobsErr = sErr, jErr
 	if sErr == nil {
 		ss.LastStorageScrape = now
