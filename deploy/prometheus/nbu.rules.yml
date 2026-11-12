@@ -24,8 +24,8 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "NetBackup API unreachable ({{ $labels.instance }})"
-          description: "All NetBackup collections (storage and jobs) have failed for >10m."
+          summary: "NetBackup API unreachable on site {{ $labels.site }}"
+          description: "All NetBackup collections (storage and jobs) for site {{ $labels.site }} have failed for >10m."
 
       # ------------------------------------------------------------- Staleness
       - alert: NbuMetricsStale
@@ -35,48 +35,54 @@ groups:
           severity: warning
         annotations:
           summary: "NetBackup {{ $labels.source }} metrics are stale"
-          description: "No successful {{ $labels.source }} collection in >30m on {{ $labels.instance }}."
+          description: "No successful {{ $labels.source }} collection in >30m on site {{ $labels.site }}."
 
       # ----------------------------------------------------------- Backup SLOs
+      # Per site, so one healthy master cannot mask a failing one. The `or 0 * ...`
+      # keeps the series when *every* backup failed (no status="0" series at all) —
+      # without it the expression is empty and the alert can never fire.
       - alert: NbuBackupSuccessRateLow
         expr: |
-          sum(nbu_status_count{action="BACKUP",status="0"})
-            / clamp_min(sum(nbu_status_count{action="BACKUP"}), 1) * 100 < 90
+          (
+            sum by (site) (nbu_status_count{action="BACKUP",status="0"})
+              or 0 * sum by (site) (nbu_status_count{action="BACKUP"})
+          )
+            / clamp_min(sum by (site) (nbu_status_count{action="BACKUP"}), 1) * 100 < 90
         for: 15m
         labels:
           severity: warning
         annotations:
-          summary: "Backup success rate below 90%"
-          description: "BACKUP success rate is {{ printf \"%.1f\" $value }}% over the current window."
+          summary: "Backup success rate below 90% on site {{ $labels.site }}"
+          description: "BACKUP success rate on site {{ $labels.site }} is {{ printf \"%.1f\" $value }}% over the current window."
 
       - alert: NbuJobsQueuedSustained
-        expr: sum(nbu_jobs_queued_count) > 0
+        expr: sum by (site) (nbu_jobs_queued_count) > 0
         for: 30m
         labels:
           severity: warning
         annotations:
-          summary: "Backup jobs queued for >30m"
-          description: "{{ $value }} job(s) remain queued; check media/storage availability."
+          summary: "NetBackup jobs queued for >30m on site {{ $labels.site }}"
+          description: "{{ $value }} job(s) remain queued on site {{ $labels.site }}; check media/storage availability (nbu_jobs_queued_count by reason)."
 
       # --------------------------------------------------------------- Storage
       - alert: NbuStorageAlmostFull
         expr: |
-          sum by (name) (nbu_disk_bytes{size="used"})
-            / sum by (name) (nbu_disk_bytes) * 100 > 90
+          sum by (site, name) (nbu_disk_bytes{size="used"})
+            / sum by (site, name) (nbu_disk_bytes) * 100 > 90
         for: 10m
         labels:
           severity: critical
         annotations:
-          summary: "Storage unit {{ $labels.name }} over 90% used"
+          summary: "Storage unit {{ $labels.name }} over 90% used on site {{ $labels.site }}"
           description: "{{ $labels.name }} is {{ printf \"%.1f\" $value }}% full."
 
       - alert: NbuStorageWarning
         expr: |
-          sum by (name) (nbu_disk_bytes{size="used"})
-            / sum by (name) (nbu_disk_bytes) * 100 > 80
+          sum by (site, name) (nbu_disk_bytes{size="used"})
+            / sum by (site, name) (nbu_disk_bytes) * 100 > 80
         for: 30m
         labels:
           severity: warning
         annotations:
-          summary: "Storage unit {{ $labels.name }} over 80% used"
+          summary: "Storage unit {{ $labels.name }} over 80% used on site {{ $labels.site }}"
           description: "{{ $labels.name }} is {{ printf \"%.1f\" $value }}% full."

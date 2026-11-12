@@ -27,3 +27,24 @@ tests:
       - eval_time: 30m
         alertname: NbuInterSiteDivergence
         exp_alerts: []
+
+  # A reachable site (nbu_up=1) with no BACKUP job at all in the window has no
+  # nbu_jobs_bytes series; it must still be flagged as diverging.
+  - interval: 1m
+    input_series:
+      - series: 'nbu_jobs_bytes{site="paris",action="BACKUP",policy_type="Standard"}'
+        values: '1000x70'
+      - series: 'nbu_up{site="paris"}'
+        values: '1x70'
+      - series: 'nbu_up{site="lyon"}'
+        values: '1x70'
+    alert_rule_test:
+      - eval_time: 65m
+        alertname: NbuInterSiteDivergence
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              site: lyon
+            exp_annotations:
+              summary: "Backup volume on site lyon is unusually low"
+              description: "Site lyon backed up less than 30% of the cross-site average BACKUP volume. Check connectivity and job scheduling."
