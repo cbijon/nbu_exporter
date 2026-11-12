@@ -1,409 +1,129 @@
 # Configuration Examples
 
-This directory contains example configuration files for different NetBackup deployment scenarios.
+Example `config.yaml` files for common deployments. All of them use the `nbuservers:`
+list and leave `apiVersion` unset, so each site detects its API version at startup.
 
-## Available Examples
+| File | Use when |
+|------|----------|
+| `config-auto-detect.yaml` | **Recommended start.** One primary server on any supported release. All collectors are listed, disabled. |
+| `config-multisite.yaml` | Two or more primary servers, each with its own `site` label. |
+| `config-netbackup-11.yaml` | NetBackup 11.x. alerts/malware/catalog/slo/tape are enabled (the first four need 11.1+). |
+| `config-netbackup-10.5.yaml` | NetBackup 10.5. The tape collector is enabled. |
+| `config-netbackup-10.0.yaml` | NetBackup 10.0 – 10.4. Core job and storage metrics only. |
 
-### 1. Automatic Version Detection (Recommended)
+The release-specific files differ only in which collectors they enable. The connection
+settings are the same in all of them.
 
-**File:** `config-auto-detect.yaml`
-
-**Use when:**
-- Deploying across multiple NetBackup versions
-- You want a single configuration that adapts automatically
-- Upgrading NetBackup and want the exporter to detect the new version
-
-**Features:**
-- No `apiVersion` field specified
-- Automatically detects highest supported version (14.0 → 13.0 → 12.0 → 10.0)
-- Works with NetBackup 10.0, 10.5, 11.0, 11.1 and 11.2 without changes
-- Adds 1-3 seconds to startup for version detection
-
-**Best for:** Mixed environments, future-proof deployments
-
----
-
-### 2. NetBackup 11.0 (Explicit Version)
-
-**File:** `config-netbackup-11.yaml`
-
-**Use when:**
-- Running NetBackup 11.0 or later
-- You want to explicitly use API version 13.0
-- You want faster startup (skips version detection)
-
-**Features:**
-- `apiVersion: "13.0"` explicitly configured
-- Immediate connection without detection
-- Takes advantage of latest API features
-
-**Best for:** NetBackup 11.0 production environments
-
----
-
-### 3. NetBackup 10.5 (Explicit Version)
-
-**File:** `config-netbackup-10.5.yaml`
-
-**Use when:**
-- Running NetBackup 10.5
-- You want to explicitly use API version 12.0
-- Maintaining backward compatibility with existing configurations
-
-**Features:**
-- `apiVersion: "12.0"` explicitly configured
-- Compatible with previous exporter versions
-- Also works with NetBackup 11.0 (backward compatible)
-
-**Best for:** NetBackup 10.5 environments, backward compatibility
-
----
-
-### 4. NetBackup 10.0-10.4 (Legacy Support)
-
-**File:** `config-netbackup-10.0.yaml`
-
-**Use when:**
-- Running NetBackup 10.0, 10.1, 10.2, 10.3, or 10.4
-- You want to explicitly use API version 10.0
-- Maintaining legacy NetBackup environments
-
-**Features:**
-- `apiVersion: "10.0"` explicitly configured
-- Legacy API support
-- Core metrics (jobs, storage) fully functional
-
-**Best for:** Legacy NetBackup 10.0-10.4 environments
-
----
-
-### 5. Multi-Site (multiple primary servers)
-
-**File:** `config-multisite.yaml`
-
-**Use when:**
-- You run more than one NetBackup primary server (typically one per site)
-- You want a single exporter instance to scrape them all
-- You want every metric labelled with its `site`
-
-**Features:**
-- A `nbuservers:` list with one entry per server, each with a unique `site`
-- A background collection loop polls every site on `collectionInterval`
-  (default 5m); scrapes read the latest snapshot, so backend API load is
-  decoupled from scrape frequency
-- Every metric series carries a `site` label (first label)
-- A down site shows only `nbu_up{site="..."}=0` and never affects the others
-- The legacy single `nbuserver:` block still works (auto-mapped to a one-entry
-  list whose `site` defaults to the host)
-
-**Best for:** Two-or-more-primary deployments; per-site dashboards and alerts
-
----
-
-## Quick Start
-
-### Step 1: Choose Your Configuration
-
-Select the configuration file that matches your NetBackup version:
-
-| NetBackup Version | Recommended File | API Version |
-|-------------------|------------------|-------------|
-| 11.0+             | `config-netbackup-11.yaml` | 13.0 |
-| 10.5              | `config-netbackup-10.5.yaml` | 12.0 |
-| 10.0-10.4         | `config-netbackup-10.0.yaml` | 10.0 |
-| Any/Mixed         | `config-auto-detect.yaml` | Auto |
-| Multiple servers  | `config-multisite.yaml` | Per-site |
-
-### Step 2: Copy and Customize
+## Quick start
 
 ```bash
-# Copy the example to your workspace
 cp docs/config-examples/config-auto-detect.yaml config.yaml
-
-# Edit the configuration
-nano config.yaml
+export NBU1_HOSTNAME=master.my.domain NBU1_APIKEY=<key>   # or put them in .env
+./bin/nbu_exporter --config config.yaml
+curl -s localhost:9440/metrics | grep -E '^nbu_(up|api_version)'
 ```
 
-### Step 3: Update Required Fields
+## API version detection
 
-Replace these placeholders with your actual values:
+With no `apiVersion`, the exporter tries API versions in descending order **for each
+site** and keeps the first one the primary server accepts. HTTP 406 means "not
+supported, try the next one".
+
+| API version | NetBackup |
+|-------------|-----------|
+| 14.0 | 11.1 / 11.2 |
+| 13.0 | 11.0 |
+| 12.0 | 10.5 |
+| 10.0 | 10.0 – 10.4 |
+
+`nbu_api_version{site,version}` shows the version in use. Detection runs in the
+background for each site, so an unreachable site never blocks startup. That site
+reports `nbu_up{site}=0` until it answers.
+
+`apiVersion` (one of `14.0`, `13.0`, `12.0`, `10.0`) is an optional per-site pin. Leave
+it unset: a pin stops the exporter from picking up a newer API after a NetBackup upgrade.
+
+## Field reference
+
+### `server`
+
+| Field | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `host` | Yes | — | Bind address. Must be `0.0.0.0` in a container. Use `localhost` only for a bare-metal binary scraped locally. |
+| `port` | Yes | — | Listen port, usually `9440`. |
+| `uri` | Yes | — | Metrics path, usually `/metrics`. |
+| `scrapingInterval` | Yes | — | Job look-back window (for example `1h`). |
+| `collectionInterval` | No | `5m` | How often the background loop polls every site. `/metrics` serves the latest snapshot and never calls NetBackup during a scrape. The effective job window is `max(scrapingInterval, collectionInterval)`. |
+| `cacheTTL` | No | `5m` | Storage metrics cache TTL. |
+| `logName` | No | — | `stdout`, or a file path whose parent directory exists. |
+
+### `nbuservers[]`
+
+One entry per primary (master) server.
+
+| Field | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `site` | Yes | — | Unique name, emitted as the `site` label. |
+| `scheme` | Yes | — | `https` (or `http`). |
+| `uri` | No | `/netbackup` | API base path. |
+| `host` | Yes | — | Primary server hostname. Accepts `${VAR}`. |
+| `port` | Yes | — | API port, usually `1556`. |
+| `apiKey` | Yes | — | API key from the NetBackup web UI. Accepts `${VAR}`. |
+| `insecureSkipVerify` | No | `false` | Bool, or a string / `${VAR}` that resolves to a bool. Last resort only. |
+| `apiVersion` | No | auto-detect | Optional pin. Leave unset. |
+
+`${VAR}` and `${VAR:-default}` are expanded in `host`, `apiKey` and `insecureSkipVerify`.
+The exporter also loads a `.env` file from the working directory or from next to
+`config.yaml`. Real environment variables take precedence.
+
+**Legacy:** a single `nbuserver:` block (with no `nbuservers:` list) is still accepted.
+The exporter maps it to a one-entry list whose `site` is the host and logs a deprecation
+warning. Replace it with an `nbuservers:` list.
+
+### `collectors` (all disabled by default)
+
+| Collector | Requires | Metrics |
+|-----------|----------|---------|
+| `alerts` | API 14.0 (NBU 11.1+) | `nbu_alerts_count` |
+| `malware` | API 14.0 | `nbu_malware_*` |
+| `catalog` | API 14.0 | `nbu_catalog_images_count` |
+| `slo` | API 14.0 | `nbu_slo_count` |
+| `tape` | API 12.0+ (NBU 10.5+) | drives, tape media, volume pools, disk-pool volumes |
+| `perClient` | — | per-client last success and job counts for the clients in `allowlist` |
+
+`perClient.allowlist` takes exact client names. **An empty allowlist produces no
+per-client series.** There is no "all clients" mode.
+
+### `opentelemetry` (optional)
 
 ```yaml
-nbuserver:
-    host: "nbu-master.my.domain"  # Your NetBackup master server hostname
-    apiKey: "your-api-key-here"   # Your NetBackup API key
+opentelemetry: { enabled: false, endpoint: "localhost:4317", insecure: true, samplingRate: 0.1 }
 ```
 
-### Step 4: Run the Exporter
+## Reload behaviour
 
-```bash
-./bin/nbu_exporter --config config.yaml
-```
+SIGHUP or a change to the file makes the exporter re-read and **validate** the config.
+If the new config is invalid, the exporter rejects it and keeps the running config. If
+it is valid, nothing changes yet: sites, collectors, intervals and the allowlist take
+effect on **restart**. If the `nbuservers` list changed, the exporter logs a RESTART
+warning.
 
----
+## Security
 
-## Configuration Field Reference
-
-### Server Section
-
-| Field | Type | Required | Default | Description |
-|-------|------|----------|---------|-------------|
-| `host` | string | Yes | - | Server bind address (e.g., "localhost", "0.0.0.0") |
-| `port` | string | Yes | - | Server port (1-65535, typically "9440") |
-| `uri` | string | Yes | - | Metrics endpoint path (typically "/metrics") |
-| `scrapingInterval` | duration | Yes | - | Job lookback window per collection (e.g., "30m", "1h", "2h") |
-| `collectionInterval` | duration | No | "5m" | How often the background loop polls every site. Backend API load is driven by this, not by scrape frequency. The effective job lookback window is `max(scrapingInterval, collectionInterval)`. |
-| `logName` | string | Yes | - | Log file path (e.g., "log/nbu-exporter.log") |
-
-### NBU Server Section
-
-| Field | Type | Required | Default | Description |
-|-------|------|----------|---------|-------------|
-| `scheme` | string | Yes | - | Protocol ("http" or "https") |
-| `uri` | string | Yes | - | API base path (typically "/netbackup") |
-| `domain` | string | Yes | - | NetBackup domain name |
-| `domainType` | string | Yes | - | Domain type (e.g., "NT", "vx") |
-| `host` | string | Yes | - | NetBackup master server hostname |
-| `port` | string | Yes | - | API port (typically "1556") |
-| `apiVersion` | string | No | Auto-detect | API version ("13.0", "12.0", "10.0", or omit for auto-detection) |
-| `apiKey` | string | Yes | - | NetBackup API key (generate from NetBackup UI) |
-| `contentType` | string | Yes | - | API content type header |
-| `insecureSkipVerify` | bool or `${VAR}` | No | false | Skip TLS verification (not recommended for production). Native bool or a `${VAR}` reference (e.g. `${NBU1_SKIP_CERTIFICATE}`) resolved at startup. |
-
-### NBU Servers Section (multi-site)
-
-For multiple primary servers, use a `nbuservers:` list **instead of** the single
-`nbuserver:` block. Each entry takes the same fields as the NBU Server section
-above, plus a required, unique `site`:
-
-| Field | Type | Required | Default | Description |
-|-------|------|----------|---------|-------------|
-| `site` | string | Yes | - | Unique site identifier; emitted as the `site` label on every metric from this server |
-| *(all NBU Server fields)* | - | - | - | Same as the single-server section above |
-
-A legacy single `nbuserver:` block is automatically promoted to a one-entry
-`nbuservers:` list whose `site` defaults to the host, so existing single-site
-configurations keep working unchanged. See `config-multisite.yaml`.
-
----
-
-## Version Detection Behavior
-
-When `apiVersion` is **not specified**, the exporter performs automatic detection:
-
-### Detection Process
-
-The exporter tries supported API versions in descending order and uses the first
-that responds successfully:
-
-1. **Try API 14.0** (NetBackup 11.1+)
-   - Makes lightweight API call with version 14.0
-   - If successful (HTTP 200), uses version 14.0
-   - If not supported (HTTP 406), tries next version
-
-2. **Try API 13.0** (NetBackup 11.0+)
-   - Makes lightweight API call with version 13.0
-   - If successful (HTTP 200), uses version 13.0
-   - If not supported (HTTP 406), tries next version
-
-3. **Try API 12.0** (NetBackup 10.5)
-   - Makes lightweight API call with version 12.0
-   - If successful (HTTP 200), uses version 12.0
-   - If not supported (HTTP 406), tries next version
-
-4. **Try API 10.0** (NetBackup 10.0-10.4)
-   - Makes lightweight API call with version 10.0
-   - If successful (HTTP 200), uses version 10.0
-   - If not supported, reports error
-
-### Detection Characteristics
-
-- **Startup Time:** Adds 1-3 seconds (one API call per version attempt)
-- **Retry Logic:** Automatically retries transient failures with exponential backoff
-- **Error Handling:** Distinguishes version incompatibility from network/auth errors
-- **Logging:** Each attempt is logged for troubleshooting
-- **Reachability:** Detection runs at startup and contacts the appliance. When
-  `apiVersion` is omitted and the appliance is unreachable, startup **fails fast**
-  rather than starting and failing on every scrape. Set an explicit `apiVersion` to
-  start without contacting the appliance first.
-
-### Startup Log Example
-
-```
-INFO[0000] Starting NBU Exporter
-INFO[0001] Attempting API version detection
-DEBUG[0001] Trying API version 13.0
-WARN[0002] API version 13.0 not supported (HTTP 406), trying next version
-DEBUG[0002] Trying API version 12.0
-INFO[0003] Detected NetBackup API version: 12.0
-INFO[0003] Successfully connected to NetBackup API
-```
-
----
-
-## Choosing Between Auto-Detection and Explicit Version
-
-### Use Auto-Detection When:
-
-✅ Deploying across multiple NetBackup versions  
-✅ You want a single configuration for all environments  
-✅ You're upgrading NetBackup and want automatic adaptation  
-✅ You don't mind 1-3 seconds additional startup time  
-✅ You want future-proof configuration  
-
-### Use Explicit Version When:
-
-✅ Running a single NetBackup version  
-✅ You want faster startup (< 1 second)  
-✅ You want predictable, consistent behavior  
-✅ You're in a production environment with strict requirements  
-✅ You want to lock to a specific API version  
-
----
-
-## Environment-Specific Recommendations
-
-### Development/Testing
-
-**Recommended:** Auto-detection (`config-auto-detect.yaml`)
-
-**Rationale:**
-- Flexibility to test against different NetBackup versions
-- Single configuration for all test environments
-- Easy to switch between NetBackup versions
-
-### Staging
-
-**Recommended:** Explicit version matching production
-
-**Rationale:**
-- Staging should mirror production configuration
-- Predictable behavior for testing
-- Faster startup for performance testing
-
-### Production
-
-**Recommended:** Explicit version (`config-netbackup-11.yaml`, `config-netbackup-10.5.yaml`, etc.)
-
-**Rationale:**
-- Faster startup (no detection overhead)
-- Predictable, consistent behavior
-- Explicit configuration is easier to audit
-- Reduces potential for unexpected behavior
-
-### Mixed Environments
-
-**Recommended:** Auto-detection (`config-auto-detect.yaml`)
-
-**Rationale:**
-- Single configuration works across all servers
-- Automatically adapts to each NetBackup version
-- Simplifies deployment and maintenance
-
----
-
-## Security Best Practices
-
-### API Key Management
-
-❌ **Don't:**
-- Commit API keys to version control
-- Share API keys between environments
-- Use the same API key for all exporters
-
-✅ **Do:**
-- Use environment variables for API keys
-- Generate separate API keys per environment
-- Rotate API keys regularly
-- Use secret management systems (Vault, AWS Secrets Manager, etc.)
-
-### TLS Configuration
-
-❌ **Don't:**
-- Set `insecureSkipVerify: true` in production
-- Disable TLS certificate verification
-
-✅ **Do:**
-- Keep `insecureSkipVerify: false` (default)
-- Install proper CA certificates
-- Use valid TLS certificates on NetBackup servers
-
-### Network Security
-
-✅ **Best Practices:**
-- Restrict exporter access to NetBackup API (firewall rules)
-- Use network segmentation
-- Monitor exporter access logs
-- Implement rate limiting if needed
-
----
+- Keep API keys out of version control. Reference them as `${NBU1_APIKEY}` and supply them through the environment, a `.env` file, or a systemd `EnvironmentFile`.
+- Keep TLS verification on and trust the NetBackup CA through `SSL_CERT_DIR` / `SSL_CERT_FILE`. With Docker Compose, use the `nbu-ca` volume (see [deploy-stack.md §10](../deploy-stack.md)).
 
 ## Troubleshooting
 
-### Configuration Validation
+| Error | Fix |
+|-------|-----|
+| `nbuservers[0] (primary): apiKey is required` | The `${VAR}` is unset or empty. Export it, or forward it into the container. |
+| `nbuservers: duplicate site name` | Give every entry a unique `site`. |
+| `unsupported API version` | Remove `apiVersion` to auto-detect, or use 14.0 / 13.0 / 12.0 / 10.0. |
+| `nbu_up{site}` stays 0 | Run the API test from [deployment-verification.md](../deployment-verification.md#1-pre-checks). |
 
-Test your configuration before deployment:
+## See also
 
-```bash
-# Test configuration syntax
-./bin/nbu_exporter --config config.yaml --debug
-
-# Check logs for errors
-tail -f log/nbu-exporter.log
-```
-
-### Common Issues
-
-**Issue:** Configuration file not found
-
-```bash
-Error: config file not found: config.yaml
-```
-
-**Solution:** Ensure the file path is correct and the file exists.
-
----
-
-**Issue:** Invalid API version
-
-```bash
-Error: invalid configuration: apiVersion must match format X.Y
-```
-
-**Solution:** Use valid API versions: "10.0", "12.0", or "13.0"
-
----
-
-**Issue:** Version detection fails
-
-```bash
-ERROR: Failed to detect compatible NetBackup API version
-```
-
-**Solution:** 
-1. Verify NetBackup version is 10.0 or later
-2. Check network connectivity to NetBackup server
-3. Verify API key is valid
-4. Try explicit version configuration
-
----
-
-## Additional Resources
-
-- [Home](../index.md) - Complete documentation
-- [Migration Guide](../netbackup-11-migration.md) - Upgrade instructions
-- [API 10.5 Migration](../api-10.5-migration.md) - Previous migration guide
-- [NetBackup API Documentation](https://sort.veritas.com/public/documents/nbu/)
-
----
-
-## Support
-
-For issues and questions:
-- **GitHub Issues:** https://github.com/fjacquet/nbu_exporter/issues
-- **Discussions:** https://github.com/fjacquet/nbu_exporter/discussions
-
----
-
-**Last Updated:** 2025-01-15  
-**Exporter Version:** Latest (with multi-version support)
+- [deployment-verification.md](../deployment-verification.md)
+- [getting-started/configuration.md](../getting-started/configuration.md)
+- [deploy-stack.md](../deploy-stack.md)

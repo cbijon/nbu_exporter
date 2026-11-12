@@ -1,5 +1,7 @@
 # NetBackup API 10.5 Migration Guide
 
+> **Historical document.** This guide describes the original move from API 10.x to API 12.0 (NetBackup 10.5). The exporter now auto-detects the API version per site (14.0 → 13.0 → 12.0 → 10.0) and uses the `nbuservers:` list format. For current upgrades see [Upgrading NetBackup to 11.x](netbackup-11-migration.md); for deployment and TLS see [deploy-stack.md](deploy-stack.md). The single `nbuserver:` block shown below is still accepted but deprecated.
+
 This guide provides detailed instructions for upgrading the NBU Exporter to support Veritas NetBackup API version 10.5 (API version 12.0).
 
 ## Table of Contents
@@ -47,7 +49,7 @@ bpgetconfig -g | grep VERSION
 
 # Or check via API (if accessible)
 curl -k -H "Authorization: YOUR_API_KEY" \
-  https://netbackup-master:1556/netbackup/config/servers/master
+  https://master.my.domain:1556/netbackup/config/servers/master
 ```
 
 ## Version Compatibility Matrix
@@ -55,10 +57,10 @@ curl -k -H "Authorization: YOUR_API_KEY" \
 | NBU Exporter Version | NetBackup API Version | NetBackup Version | Status |
 |----------------------|----------------------|-------------------|--------|
 | 1.x.x (legacy)       | 10.x                 | 10.0 - 10.4       | Deprecated |
-| 2.0.0+               | 12.0                 | 10.5+             | Current |
-| 2.0.0+               | 10.x (fallback)      | 10.0 - 10.4       | Limited Support* |
+| 2.0.0+               | 12.0                 | 10.5              | Historical |
+| 2.0.0+               | 10.x (fallback)      | 10.0 - 10.4       | Historical |
 
-*Limited Support: The exporter may work with older NetBackup versions if the API endpoints remain compatible, but this is not officially tested or supported.
+Current releases support API 10.0, 12.0, 13.0 (NetBackup 11.0) and 14.0 (NetBackup 11.1 / 11.2) and auto-detect the version; see [Upgrading NetBackup to 11.x](netbackup-11-migration.md).
 
 ## What's Changed
 
@@ -178,7 +180,7 @@ nbuserver:
     insecureSkipVerify: false
 ```
 
-**Note**: If you omit `apiVersion`, it will default to "12.0", but explicitly setting it is recommended for clarity.
+**Note**: In current releases, omit `apiVersion`: the exporter auto-detects the highest version the master supports. Pin it only to force a lower version.
 
 ### Step 5: Validate Configuration
 
@@ -219,23 +221,11 @@ See [Verification](#verification) section below.
 
 ### Recommended Changes
 
-Add the `apiVersion` field for explicit version control:
+In current releases, leave `apiVersion` unset so the exporter auto-detects it, and use the `nbuservers:` list format (see [Upgrading NetBackup to 11.x](netbackup-11-migration.md)).
 
-```yaml
-nbuserver:
-    apiVersion: "12.0"
-```
+### Complete Example Configuration (historical)
 
-### Optional Changes
-
-If you want to prepare for future API versions:
-
-```yaml
-nbuserver:
-    apiVersion: "12.0"  # Can be updated when newer versions are available
-```
-
-### Complete Example Configuration
+This is the 10.5-era format. For a current configuration (`nbuservers:`, no pin), see [Upgrading NetBackup to 11.x](netbackup-11-migration.md#recommended-configuration) or `config.yaml` in the repository.
 
 ```yaml
 ---
@@ -249,9 +239,9 @@ server:
 nbuserver:
     scheme: "https"
     uri: "/netbackup"
-    domain: "production"
+    domain: "my.domain"
     domainType: "NT"
-    host: "netbackup-master.example.com"
+    host: "master.my.domain"
     port: "1556"
     apiVersion: "12.0"  # NetBackup 10.5 API version
     apiKey: "your-api-key-here"
@@ -276,10 +266,10 @@ curl http://localhost:9440/health
 curl http://localhost:9440/metrics | grep nbu_
 
 # Expected output should include:
-# nbu_storage_bytes{name="...",type="...",size="free"} ...
-# nbu_storage_bytes{name="...",type="...",size="used"} ...
+# nbu_disk_bytes{name="...",type="...",size="free"} ...
+# nbu_disk_bytes{name="...",type="...",size="used"} ...
 # nbu_jobs_count{action="...",policy_type="...",status="..."} ...
-# nbu_jobs_size_bytes{action="...",policy_type="...",status="..."} ...
+# nbu_jobs_bytes{action="...",policy_type="...",status="..."} ...
 ```
 
 ### 3. Check Logs
@@ -378,8 +368,7 @@ ERROR Failed to fetch storage data: HTTP 406 Not Acceptable
 
 **Solution:**
 1. Verify NetBackup version: Must be 10.5 or later
-2. If using older NetBackup, try setting `apiVersion: "10.0"` (unsupported)
-3. Consider upgrading NetBackup to 10.5+
+2. If `apiVersion` is pinned, remove the pin so the exporter auto-detects the version (API 10.0 is supported for NetBackup 10.0 – 10.4)
 
 ### Issue: "Invalid API Version Format"
 
@@ -432,18 +421,9 @@ ERROR x509: certificate signed by unknown authority
 
 **Solutions:**
 
-**Option 1: Install CA Certificate (Recommended)**
-```bash
-# Copy NetBackup CA cert to system trust store
-sudo cp netbackup-ca.crt /usr/local/share/ca-certificates/
-sudo update-ca-certificates
-```
+**Recommended: trust the NetBackup CA** and keep verification on. Follow the procedure in [deploy-stack.md §10](deploy-stack.md#10-tls-trust-the-netbackup-ca-keep-certificate-verification-on) (`SSL_CERT_DIR` / `SSL_CERT_FILE`, `nbu-ca` volume in docker compose).
 
-**Option 2: Disable Verification (Testing Only)**
-```yaml
-nbuserver:
-    insecureSkipVerify: true  # NOT recommended for production
-```
+`insecureSkipVerify: true` is a last resort, for a trusted network only.
 
 ### Issue: Authentication Failures
 
@@ -523,7 +503,7 @@ grep ERROR log/nbu-exporter.log
 
 ### Q: Do I need to upgrade if I'm using NetBackup 10.4 or earlier?
 
-**A:** No, but it's recommended. The new exporter version defaults to API version 12.0, which requires NetBackup 10.5+. If you must use an older NetBackup version, you can try setting `apiVersion: "10.0"`, but this is not officially supported.
+**A:** No. Current releases auto-detect API 10.0 on NetBackup 10.0 – 10.4; leave `apiVersion` unset.
 
 ### Q: Will my existing Prometheus queries and Grafana dashboards still work?
 
@@ -531,11 +511,11 @@ grep ERROR log/nbu-exporter.log
 
 ### Q: What happens if I don't add the `apiVersion` field to my config?
 
-**A:** The exporter will use the default value of "12.0", which is correct for NetBackup 10.5+. However, explicitly setting it is recommended for clarity.
+**A:** In current releases the exporter auto-detects the highest API version the master supports. Leaving it unset is recommended.
 
 ### Q: Can I use different API versions for different NetBackup servers?
 
-**A:** Currently, the exporter supports one API version per instance. If you need to monitor multiple NetBackup servers with different versions, run separate exporter instances with different configurations.
+**A:** Yes. In current releases each `nbuservers` entry detects its own API version, so one exporter can monitor masters on different NetBackup versions. See [Upgrading NetBackup to 11.x](netbackup-11-migration.md#multi-site-with-masters-on-different-versions).
 
 ### Q: Are there any new metrics available with API 10.5?
 
@@ -543,7 +523,7 @@ grep ERROR log/nbu-exporter.log
 
 ### Q: How do I know which API version my NetBackup server supports?
 
-**A:** NetBackup 10.5 and later support API version 12.0. You can also check the NetBackup API documentation or contact your NetBackup administrator.
+**A:** API 12.0 = NetBackup 10.5, 13.0 = 11.0, 14.0 = 11.1 / 11.2. The exporter reports the version in use per site in `nbu_api_version{site,version}`.
 
 ### Q: Will this upgrade affect my historical metrics in Prometheus?
 
@@ -575,18 +555,8 @@ grep ERROR log/nbu-exporter.log
 
 ## Automated Verification
 
-A verification script is available to test deployment procedures:
-
-```bash
-# Run deployment verification tests
-./scripts/verify-deployment.sh
-```
-
-This script verifies:
-- Binary and configuration files
-- Backward compatibility with configs missing API version
-- Default API version behavior
-- Unit tests for configuration validation
+The old `scripts/verify-deployment.sh` was removed (it checked the 10.5-era defaults). Use
+the post-deploy checks in [Deployment Verification](deployment-verification.md).
 
 ## Additional Resources
 

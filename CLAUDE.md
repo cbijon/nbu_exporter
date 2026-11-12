@@ -122,7 +122,7 @@ Requires `config.yaml` with sections: `server`, `nbuserver`, optional `opentelem
 
 - **`vendor/` is gitignored** (not committed). After changing dependencies, run `go mod vendor` or build with `-mod=mod`, otherwise builds may fail on missing vendored modules.
 - **`make ci` excludes `vendor/` from `fmt-check`** — needed because `vendor/` is present locally but absent in CI (gitignored). Don't simplify it back to a bare `gofmt -l .`.
-- **CI workflows**: `ci.yml` is the main gate (fmt/vet/lint/`test-race`/govulncheck + 70% coverage via `.testcoverage.yml` + Semgrep + SBOM); `codeql.yml` runs CodeQL; `release.yml` is GoReleaser; `static.yml` deploys docs.
+- **CI workflows**: `ci.yml` is the main gate (fmt/vet/lint/`test-race`/govulncheck + 70% coverage via `.testcoverage.yml` + Semgrep + SBOM); `security.yml` runs the reusable security gate (`fjacquet/ci` go-security: CodeQL/osv blocking, Semgrep advisory); `release.yml` is GoReleaser; `docs.yml` deploys the MkDocs site; `helm-charts.yml` releases the chart. CI also has an `alert-rules` job (promtool on `deploy/prometheus/*_test.yml`).
 - **`go` directive is patch-pinned (`go 1.27.4`)** on purpose — CI installs the exact version via `go-version-file`, and `govulncheck` fails on the stdlib CVEs present in `1.27.3`. Don't loosen it to `go 1.27`.
 - **Workflow actions are SHA-pinned** (40-char commit + version comment) and the Semgrep image is digest-pinned. Keep new `uses:` SHA-pinned — Semgrep/CodeRabbit flag floating tags.
 - **Release signing uses cosign's bundle format** (`--bundle` in `.goreleaser.yml signs`). cosign v4 ignores the old `--output-signature`/`--output-certificate` flags.
@@ -135,7 +135,7 @@ Requires `config.yaml` with sections: `server`, `nbuserver`, optional `opentelem
 - `github.com/spf13/cobra` - CLI framework
 - `github.com/sirupsen/logrus` - Logging
 - `github.com/patrickmn/go-cache` - TTL cache for storage metrics
-- `github.com/fsnotify/fsnotify` - File watcher for config hot-reload
+- `github.com/fsnotify/fsnotify` - File watcher for config change validation (reload = validate; restart applies)
 - `github.com/stretchr/testify` - Test assertions and mocks
 - `golang.org/x/sync` - Concurrency primitives (errgroup)
 - `go.opentelemetry.io/otel` - OpenTelemetry tracing

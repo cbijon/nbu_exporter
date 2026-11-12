@@ -115,8 +115,9 @@ type Server struct {
 // It initializes a new Prometheus registry for metric collection and creates
 // a telemetry manager if OpenTelemetry is enabled in the configuration.
 //
-// The server uses SafeConfig for thread-safe configuration access, enabling
-// dynamic configuration reload without restart.
+// The server uses SafeConfig for thread-safe configuration access. A reload
+// (SIGHUP / file change) re-validates the file; the collection loop keeps its
+// startup copy, so applying changes requires a restart.
 //
 // Example:
 //

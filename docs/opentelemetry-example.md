@@ -25,37 +25,43 @@ Edit `config.yaml` to enable OpenTelemetry:
 
 ```yaml
 server:
-    host: "localhost"
+    host: "0.0.0.0"            # required in a container
     port: "9440"
     uri: "/metrics"
     scrapingInterval: "1h"
-    logName: "log/nbu-exporter.log"
+    collectionInterval: "5m"
+    logName: "stdout"
 
-nbuserver:
-    scheme: "https"
-    host: "master.my.domain"  # Your NetBackup server
-    port: "1556"
-    apiKey: "your-api-key-here"  # Your API key
-    # ... other settings
+nbuservers:
+    - site: "primary"
+      scheme: "https"
+      uri: "/netbackup"
+      host: "master.my.domain"   # Your NetBackup primary server
+      port: "1556"
+      apiKey: "your-api-key-here"
+      # apiVersion omitted: auto-detected (14.0 on NetBackup 11.1)
 
 opentelemetry:
     enabled: true
     endpoint: "otel-collector:4317"
     insecure: true
-    samplingRate: 1.0  # Trace all scrapes for testing
+    samplingRate: 1.0  # Trace every collection cycle (testing)
 ```
+
+`docker-compose-otel.yaml` forwards `NBU1_*` / `NBU2_*` from `.env` like the main compose file;
+a `${NBU1_HOSTNAME}` left unset makes the exporter fail at startup.
 
 ### 2. Start the Stack
 
 ```bash
 # Start all services
-docker-compose -f docker-compose-otel.yaml up -d
+docker compose -f docker-compose-otel.yaml up -d
 
 # Check service status
-docker-compose -f docker-compose-otel.yaml ps
+docker compose -f docker-compose-otel.yaml ps
 
 # View logs
-docker-compose -f docker-compose-otel.yaml logs -f nbu_exporter
+docker compose -f docker-compose-otel.yaml logs -f nbu_exporter
 ```
 
 ### 3. Access the Services
@@ -76,27 +82,33 @@ docker-compose -f docker-compose-otel.yaml logs -f nbu_exporter
 
 ## Understanding the Trace Hierarchy
 
-Each Prometheus scrape creates a trace with this structure:
+NetBackup is polled by a background loop every `collectionInterval`, never on scrape. Each fetch of
+a collection cycle is the root of its own trace:
 
 ```
-prometheus.scrape (root span)
-├── netbackup.fetch_storage
-│   └── http.request (GET /storage/storage-units)
-└── netbackup.fetch_jobs
-    ├── netbackup.fetch_job_page (offset=0)
-    │   └── http.request (GET /admin/jobs?offset=0)
-    ├── netbackup.fetch_job_page (offset=1)
-    │   └── http.request (GET /admin/jobs?offset=1)
-    └── netbackup.fetch_job_page (offset=N)
-        └── http.request (GET /admin/jobs?offset=N)
+netbackup.fetch_storage
+└── http.request (GET /storage/storage-units)
+
+netbackup.fetch_jobs
+├── netbackup.fetch_job_page (first page)
+│   └── http.request (GET /admin/jobs?filter=endTime gt ...)
+├── netbackup.fetch_job_page (page[after]=<cursor>)
+│   └── http.request (GET /admin/jobs?page[after]=...)
+└── netbackup.fetch_live_jobs (state ne 'DONE')
+    └── http.request
+
+subcollector.<name>   (one per enabled collector)
 ```
+
+Each Prometheus scrape only produces a short `prometheus.scrape` span that reads the latest
+snapshot. See the [Trace Analysis Guide](trace-analysis-guide.md) for details.
 
 ## Analyzing Traces
 
-### Find Slow Scrapes
+### Find Slow Collections
 
 1. In Jaeger UI, go to "Search" tab
-2. Select service: `nbu-exporter`
+2. Select service: `nbu-exporter` and operation `netbackup.fetch_jobs`
 3. Set "Min Duration" to filter slow traces (e.g., 30s)
 4. Click "Find Traces"
 
@@ -127,7 +139,7 @@ netbackup.fetch_jobs: 45.3s
 ├── netbackup.fetch_job_page: 15.1s
 └── netbackup.fetch_job_page: 15.0s
 ```
-**Diagnosis**: Many job pages. Consider reducing `scrapingInterval`.
+**Diagnosis**: Many job pages. Consider reducing `scrapingInterval` (the job look-back window).
 
 **API errors:**
 ```
@@ -139,24 +151,25 @@ http.request: 5.2s (http.status_code=500)
 
 ### Sampling Rates
 
-Adjust `samplingRate` based on your needs:
+Adjust `samplingRate` based on your needs. Always set it: an omitted value is `0.0`, which samples
+nothing.
 
 **Development (trace everything):**
 ```yaml
 opentelemetry:
-    samplingRate: 1.0  # 100% of scrapes
+    samplingRate: 1.0  # 100% of traces
 ```
 
 **Production (sample 10%):**
 ```yaml
 opentelemetry:
-    samplingRate: 0.1  # 10% of scrapes
+    samplingRate: 0.1  # 10% of traces
 ```
 
 **High-frequency (minimal overhead):**
 ```yaml
 opentelemetry:
-    samplingRate: 0.01  # 1% of scrapes
+    samplingRate: 0.01  # 1% of traces
 ```
 
 ### Collector Configuration
@@ -193,19 +206,19 @@ exporters:
 
 **Check exporter logs:**
 ```bash
-docker-compose -f docker-compose-otel.yaml logs nbu_exporter
+docker compose -f docker-compose-otel.yaml logs nbu_exporter
 ```
 
 **Look for:**
-- `INFO[0001] Detected NetBackup API version: 13.0`
-- `INFO[0001] OpenTelemetry initialized successfully`
+- `OpenTelemetry initialized successfully (endpoint: ..., sampling: ...)`
+- `Successfully detected API version: 14.0` (on NetBackup 11.1)
 
 **If you see:**
-- `WARN[0001] Failed to initialize OpenTelemetry: connection refused`
+- `Failed to initialize OpenTelemetry: ... Continuing without tracing.`
 
 **Solution:** Ensure the collector is running:
 ```bash
-docker-compose -f docker-compose-otel.yaml ps otel-collector
+docker compose -f docker-compose-otel.yaml ps otel-collector
 ```
 
 ### Collector Connection Issues
@@ -217,24 +230,24 @@ curl http://localhost:13133
 
 **Check collector logs:**
 ```bash
-docker-compose -f docker-compose-otel.yaml logs otel-collector
+docker compose -f docker-compose-otel.yaml logs otel-collector
 ```
 
 **Verify network connectivity:**
 ```bash
-docker-compose -f docker-compose-otel.yaml exec nbu_exporter ping otel-collector
+docker compose -f docker-compose-otel.yaml exec nbu_exporter ping otel-collector
 ```
 
 ### Jaeger Not Receiving Traces
 
 **Check Jaeger logs:**
 ```bash
-docker-compose -f docker-compose-otel.yaml logs jaeger
+docker compose -f docker-compose-otel.yaml logs jaeger
 ```
 
 **Verify collector is exporting to Jaeger:**
 ```bash
-docker-compose -f docker-compose-otel.yaml logs otel-collector | grep jaeger
+docker compose -f docker-compose-otel.yaml logs otel-collector | grep jaeger
 ```
 
 **Check collector metrics:**
@@ -286,11 +299,10 @@ receivers:
 ```
 
 **Use secrets management:**
-```bash
-# Don't commit API keys to version control
-docker-compose -f docker-compose-otel.yaml up -d \
-  -e NBU_API_KEY=$(cat /path/to/secret)
-```
+
+Don't commit API keys to version control. Reference them from `config.yaml`
+(`apiKey: "${NBU1_APIKEY}"`) and forward the variable through the service's `environment:` list,
+fed from a gitignored `.env` file or your secret store.
 
 ### Resource Limits
 
@@ -333,10 +345,10 @@ curl http://localhost:8888/metrics
 
 ```bash
 # Stop all services
-docker-compose -f docker-compose-otel.yaml down
+docker compose -f docker-compose-otel.yaml down
 
 # Stop and remove volumes
-docker-compose -f docker-compose-otel.yaml down -v
+docker compose -f docker-compose-otel.yaml down -v
 ```
 
 ## Alternative Backends

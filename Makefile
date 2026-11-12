@@ -117,7 +117,7 @@ run-cli: cli
 
 # Run the Docker container
 run-docker: docker
-	docker run -d -p 9440:9440 --name $(CLI_BIN) $(CLI_BIN)
+	docker run -d -p 9440:9440 --env-file .env -v $(CURDIR)/config.yaml:/etc/nbu_exporter/config.yaml:ro --name $(CLI_BIN) $(CLI_BIN)
 
 # Clean up build artifacts
 clean:

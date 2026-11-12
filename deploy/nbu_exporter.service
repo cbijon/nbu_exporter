@@ -14,7 +14,8 @@ Group=nbu
 EnvironmentFile=/etc/nbu_exporter/nbu_exporter.env
 
 ExecStart=/usr/local/bin/nbu_exporter --config /etc/nbu_exporter/config.yaml
-# `systemctl reload nbu_exporter` performs a live config reload (SIGHUP).
+# `systemctl reload nbu_exporter` re-reads and validates config.yaml (SIGHUP); changes
+# (sites, collectors, intervals) are applied by `systemctl restart nbu_exporter`.
 ExecReload=/bin/kill -HUP $MAINPID
 
 Restart=on-failure

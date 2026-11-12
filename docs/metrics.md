@@ -82,8 +82,12 @@ Notes on the implemented attributes (these differ from early guesses):
   `enforcement_type` label was dropped.
 - **Tape collector** (`collectors.tape`) is one collector over five endpoints with
   per-endpoint graceful degradation. The `tape-volume-pools` and `disk-pools` endpoints are
-  API v12.0+ (NBU 10.5+) and are skipped with a debug log on older releases. Tape media is
-  offset-paginated and aggregated client-side; `robot_type` is read from the per-drive
+  API v12.0+ (NBU 10.5+) and are skipped with a debug log on older releases. Pagination
+  follows the API spec per endpoint: `tape-media` and `tape-volume-pools` are cursor-paginated
+  (`page[after]`), `drives` and `disk-pools` offset-paginated; rows are aggregated client-side
+  and de-duplicated (a drive/media/pool seen on two pages is counted once). The drive name is
+  the resource `id`, its media server the first `devicePaths[].deviceHost` when the top-level
+  attribute is absent; `robot_type` is read from the per-drive
   attribute (there is no bulk robot-listing endpoint, so a standalone robot type/count metric
   is not exposed). The drive `status` label carries the **raw** `driveStatus` enum
   (`DRIVE_STATUS_UP`/`DRIVE_STATUS_DOWN`/`DRIVE_STATUS_DISABLED`/…) and `nbu_tape_media_count`

@@ -2,14 +2,18 @@
 
 A production-ready Prometheus exporter that collects backup job statistics and storage metrics from Veritas NetBackup REST API, exposing them for monitoring and visualization in Grafana.
 
-![CI](https://github.com/fjacquet/nbu_exporter/actions/workflows/build.yml/badge.svg)
-![Coverage](https://github.com/fjacquet/nbu_exporter/actions/workflows/coverage.yml/badge.svg)
+[![CI](https://github.com/fjacquet/nbu_exporter/actions/workflows/ci.yml/badge.svg)](https://github.com/fjacquet/nbu_exporter/actions/workflows/ci.yml)
+[![Security](https://github.com/fjacquet/nbu_exporter/actions/workflows/security.yml/badge.svg)](https://github.com/fjacquet/nbu_exporter/actions/workflows/security.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/fjacquet/nbu_exporter)](https://goreportcard.com/report/github.com/fjacquet/nbu_exporter)
 
 ## Features
 
 - **Job Metrics Collection** - Aggregates backup job statistics by type, policy, and status
 - **Storage Monitoring** - Tracks storage unit capacity (free/used bytes) for disk-based storage
+- **Tape & Disk Pools** (opt-in) - Drive status, media per pool, partially-full volume pools, disk-pool volume states
+- **Per-client Lifecycle** (opt-in) - Last success and job counts per allowlisted client for BACKUP / DUPLICATION / IMPORT
+- **Data Protection** (opt-in, NBU 11.1+) - Alerts, malware scans, catalog posture, SLOs
+- **Dashboards & Alerts** - 7 provisioned Grafana dashboards and Prometheus alerting rules (docker-compose stack)
 - **Multi-Site** - Scrape multiple NetBackup primary servers from one exporter, with every metric labelled by `site` (background snapshot collection)
 - **Prometheus Integration** - Native Prometheus metrics exposition via HTTP endpoint
 - **OpenTelemetry Tracing** - Optional distributed tracing for performance analysis and troubleshooting
@@ -21,16 +25,19 @@ A production-ready Prometheus exporter that collects backup job statistics and s
 ## Quick Start
 
 ```bash
-# Clone and build
+# Full stack (exporter + Prometheus + Grafana)
 git clone https://github.com/fjacquet/nbu_exporter.git
 cd nbu_exporter
-make cli
+cp .env.example .env && $EDITOR .env   # NBU1_HOSTNAME, NBU1_APIKEY (NBU2_* for a second master)
+docker compose up -d
 
-# Run with configuration
+# Or the binary alone
+make cli
 ./bin/nbu_exporter --config config.yaml
 ```
 
-See the [Installation guide](getting-started/installation.md) for full details.
+See [Deploying the full stack](deploy-stack.md) (setup, TLS, multi-site, post-deploy checks) or the
+[Installation guide](getting-started/installation.md).
 
 ## Version Support Matrix
 
@@ -41,16 +48,20 @@ See the [Installation guide](getting-started/installation.md) for full details.
 | 10.5              | 12.0        | Fully Supported |
 | 10.0 - 10.4       | 10.0        | Fully Supported |
 
-The exporter automatically detects the highest supported API version (14.0 -> 13.0 -> 12.0 -> 10.0).
+The exporter automatically detects, per site, the highest supported API version (14.0 → 13.0 → 12.0 → 10.0); leave `apiVersion` unset. Masters on different releases can be monitored together.
 
 ## Metrics at a Glance
 
 | Metric | Description |
 |--------|-------------|
-| `nbu_jobs_count` | Number of jobs by type, policy, and status |
-| `nbu_jobs_size_bytes` | Total bytes transferred by jobs |
-| `nbu_jobs_status_count` | Job count by action and status |
-| `nbu_storage_bytes` | Storage unit capacity (free/used) |
-| `nbu_api_version` | Active NetBackup API version |
+| `nbu_up` | `1` per site when its last collection succeeded |
+| `nbu_api_version` | Active NetBackup API version per site (`14.0` on NBU 11.1/11.2) |
+| `nbu_jobs_count` | Number of jobs by action, policy type and status |
+| `nbu_jobs_bytes` | Bytes transferred by jobs |
+| `nbu_status_count` | Job count by action and exit status |
+| `nbu_jobs_state_count` / `nbu_jobs_queued_count` | Running / queued jobs (live, not limited to the window) |
+| `nbu_disk_bytes` | Storage unit capacity (free/used) |
+| `nbu_tape_drives_count` | Tape drives by type, robot type and status (opt-in) |
+| `nbu_client_last_job_success_seconds` | Last successful job per client and lifecycle phase (opt-in) |
 
 See the [Metrics Reference](metrics.md) for full details.

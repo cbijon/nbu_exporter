@@ -1,26 +1,25 @@
 # Configuration
 
-Create a `config.yaml` file:
+Create a `config.yaml` file (the repository ships a ready-to-use one at the root):
 
 ```yaml
 server:
-    host: "localhost"
+    host: "0.0.0.0"            # "localhost" only for a bare-metal binary scraped locally
     port: "9440"
     uri: "/metrics"
-    scrapingInterval: "1h"
-    logName: "log/nbu-exporter.log"
+    scrapingInterval: "1h"     # job look-back window
+    collectionInterval: "5m"   # background poll of every site (default 5m)
+    logName: "stdout"          # or a file path whose parent directory exists
 
-nbuserver:
-    scheme: "https"
-    uri: "/netbackup"
-    domain: "my.domain"
-    domainType: "NT"
-    host: "master.my.domain"
-    port: "1556"
-    apiVersion: "13.0"  # Optional: auto-detects if omitted
-    apiKey: "your-api-key-here"
-    contentType: "application/vnd.netbackup+json; version=13.0"
-    insecureSkipVerify: false  # or "${NBU1_SKIP_CERTIFICATE}" — see Environment Variables below
+nbuservers:                    # one entry per NetBackup primary (master) server
+    - site: "primary"          # required, unique; becomes the `site` label
+      scheme: "https"
+      uri: "/netbackup"
+      host: "${NBU1_HOSTNAME}"
+      port: "1556"
+      apiKey: "${NBU1_APIKEY}"
+      insecureSkipVerify: "${NBU1_SKIP_CERTIFICATE:-false}"
+      # apiVersion: "14.0"     # optional pin; omit to auto-detect (recommended)
 
 # Optional: OpenTelemetry distributed tracing
 # opentelemetry:
@@ -28,98 +27,104 @@ nbuserver:
 #     endpoint: "localhost:4317"
 #     insecure: true
 #     samplingRate: 0.1
+
+# Optional: opt-in collectors (all disabled by default)
+# collectors:
+#     alerts:  { enabled: false }
+#     malware: { enabled: false }
+#     catalog: { enabled: false }
+#     slo:     { enabled: false }
+#     tape:    { enabled: false }
+#     perClient: { enabled: false, allowlist: [] }
 ```
 
 !!! warning
     Never commit API keys to version control. Use environment variables or secure secret management.
 
+!!! note "Container deployments"
+    In Docker or Kubernetes `server.host` **must** be `"0.0.0.0"`. With `"localhost"` the exporter
+    binds the container loopback only: Prometheus cannot scrape it, yet the `/livez` healthcheck
+    still passes.
+
+## API version
+
+Leave `apiVersion` unset. At startup each site probes 14.0 → 13.0 → 12.0 → 10.0 and keeps the
+first version its master accepts (HTTP 406 means "not supported"). The version in use is exposed as
+`nbu_api_version{site,version}`.
+
+| API version | NetBackup |
+|---|---|
+| 14.0 | 11.1 / 11.2 |
+| 13.0 | 11.0 |
+| 12.0 | 10.5 |
+| 10.0 | 10.0 – 10.4 |
+
+Set `apiVersion` only to pin a site deliberately (for example while troubleshooting detection).
+
 ## Multiple Sites
 
-To monitor more than one NetBackup primary server from a single exporter, replace the single
-`nbuserver:` block with a `nbuservers:` list — one entry per site, each with a **required, unique
-`site`**. Every metric is then labelled with its `site`, and a background loop collects all sites
-on `server.collectionInterval` (default `5m`), so backend API load is decoupled from Prometheus
-scrape frequency.
+To monitor more than one NetBackup primary server from a single exporter, add entries to the
+`nbuservers:` list — each with a **required, unique `site`**. Every metric is labelled with its
+`site`, and a background loop collects all sites on `server.collectionInterval` (default `5m`), so
+backend API load is decoupled from Prometheus scrape frequency: `/metrics` serves the latest
+snapshot and never calls NetBackup on scrape.
 
 ```yaml
-server:
-    host: "0.0.0.0"
-    port: "9440"
-    uri: "/metrics"
-    scrapingInterval: "1h"
-    collectionInterval: "5m"   # how often every site is polled (default 5m)
-    logName: "log/nbu-exporter.log"
-
 nbuservers:
-    - site: "paris"
+    - site: "primary"
       scheme: "https"
       uri: "/netbackup"
-      host: "nbu-paris.my.domain"
+      host: "${NBU1_HOSTNAME}"       # e.g. master.my.domain
       port: "1556"
-      apiVersion: "13.0"        # optional; omit to auto-detect
-      apiKey: "your-paris-api-key"
-      insecureSkipVerify: false
-    - site: "lyon"
+      apiKey: "${NBU1_APIKEY}"
+      insecureSkipVerify: "${NBU1_SKIP_CERTIFICATE:-false}"
+    - site: "secondary"
       scheme: "https"
       uri: "/netbackup"
-      host: "nbu-lyon.my.domain"
+      host: "${NBU2_HOSTNAME}"       # e.g. master2.my.domain
       port: "1556"
-      apiKey: "your-lyon-api-key"
+      apiKey: "${NBU2_APIKEY}"
+      insecureSkipVerify: "${NBU2_SKIP_CERTIFICATE:-false}"
 ```
 
-An unreachable site reports only `nbu_up{site="..."}=0` and never affects the others. A legacy
-single `nbuserver:` block is automatically mapped to a one-entry list (with `site` defaulting to
-the host), so existing single-site configurations keep working unchanged. See
-[`config-multisite.yaml`](../config-examples/config-multisite.yaml).
+Each site is polled independently and detects its own API version, so masters on different
+NetBackup releases can coexist. An unreachable site reports only `nbu_up{site="..."}=0` and never
+affects the others. See [`config-multisite.yaml`](../config-examples/config-multisite.yaml).
+
+### Legacy `nbuserver:` block
+
+For compatibility, a single `nbuserver:` block (same fields, no `site`) is still accepted: it is
+mapped to a one-entry list whose `site` defaults to the host, and a deprecation warning is logged at
+startup. Migrate to `nbuservers:`.
 
 ## Environment Variables / .env loading
 
-The `host` and `apiKey` fields in the `nbuserver` section support `${VAR}` interpolation.
-At startup the exporter expands every `${VAR}` reference and fails loudly if a variable is not set.
+The `host`, `apiKey` and `insecureSkipVerify` fields (in every `nbuservers:` entry, and in the
+legacy `nbuserver:` block) support `${VAR}` and `${VAR:-default}` interpolation.
+At startup the exporter expands every reference and fails loudly if a bare `${VAR}` is not set.
 
-`insecureSkipVerify` accepts either a native boolean (`insecureSkipVerify: true`) or the same
-`${VAR}` interpolation (`insecureSkipVerify: "${NBU1_SKIP_CERTIFICATE}"`), resolved at startup
-alongside `host`/`apiKey`. This lets you toggle TLS verification per environment (e.g. a lab
-override) without editing `config.yaml`.
+`insecureSkipVerify` accepts either a native boolean (`insecureSkipVerify: true`) or a string /
+`${VAR}` reference (`insecureSkipVerify: "${NBU1_SKIP_CERTIFICATE:-false}"`), resolved at startup
+alongside `host`/`apiKey`. This lets you toggle TLS verification per environment without editing
+`config.yaml`.
 
 `nbu_exporter` loads a `.env` file natively at startup — you do not need a shell wrapper or
 `export` statements. It looks for `.env` in the working directory first, then in the same
 directory as `config.yaml`. Already-set environment variables always win: values in `.env`
 never shadow real env/secret injection.
 
-**One-server quickstart** — copy `.env.example` to `.env`, fill in your values, and reference
-them from `config.yaml`:
+Copy `.env.example` to `.env` and fill in your values; the shipped `config.yaml` already
+references them:
 
 ```bash
 cp .env.example .env
-# edit .env — set NBU1_HOSTNAME and NBU1_APIKEY
+# edit .env — set NBU1_HOSTNAME and NBU1_APIKEY (NBU2_* for a second site)
 ```
 
-```yaml
-nbuserver:
-  host: "${NBU1_HOSTNAME}"
-  apiKey: "${NBU1_APIKEY}"
-```
-
-The `NBU1_*` variables are passed into the container by `docker-compose.yml` from the `.env`
-file automatically.
-
-**Multi-site** — use the `nbuservers:` list (see [Multiple Sites](#multiple-sites) above). Each
-entry's `host` and `apiKey` support the same `${VAR}` interpolation:
-
-```yaml
-nbuservers:
-  - site: "paris"
-    host: "${NBU_PARIS_HOST}"
-    apiKey: "${NBU_PARIS_KEY}"
-    # ...
-  - site: "lyon"
-    host: "${NBU_LYON_HOST}"
-    apiKey: "${NBU_LYON_KEY}"
-    # ...
-```
-
-The `.env` / `NBU1_*` naming is a single-server convenience; there is no limit on variable names.
+With Docker Compose, the `.env` file is not mounted into the container: `docker-compose.yml`
+forwards the `NBU1_*` / `NBU2_*` variables to the exporter. Any other variable you reference from
+`config.yaml` must be added to its `environment:` list. Variable names are free; `NBU1_*`/`NBU2_*`
+are only the shipped convention.
 
 ### API keys with special characters
 
@@ -160,34 +165,47 @@ insecureSkipVerify: "${NBU1_SKIP_CERTIFICATE:-false}"
 Use it for settings, not for secrets — a `${NBU1_APIKEY:-}` would silently turn a missing
 password into an empty one.
 
+## TLS
+
+Keep certificate verification on and trust the NetBackup CA: Go reads `SSL_CERT_DIR` /
+`SSL_CERT_FILE`. With Docker Compose, put the CA PEM in `./nbu-ca/`, uncomment the `nbu-ca` volume
+(`./nbu-ca:/etc/nbu_exporter/ca:ro`) and `SSL_CERT_DIR=/etc/ssl/certs:/etc/nbu_exporter/ca`. The full
+procedure is in [Deploy stack §10](../deploy-stack.md). `insecureSkipVerify: true` is a last resort,
+for a trusted network only.
+
+## Reloading the configuration
+
+`SIGHUP` (`systemctl reload`) and file changes re-read **and validate** `config.yaml`, with the same
+secret resolution as startup. An invalid edit is rejected and logged, and the running configuration
+is kept. Changes are **not applied live**: sites, collectors, intervals and the per-client allowlist
+take effect only after a **restart**. A changed `nbuservers` list logs a RESTART warning.
+
 ## Server Section
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `host` | string | Yes | Server bind address |
+| `host` | string | Yes | Bind address (`0.0.0.0` in a container) |
 | `port` | string | Yes | Server port (1-65535) |
 | `uri` | string | Yes | Metrics endpoint path |
 | `scrapingInterval` | duration | Yes | Job lookback window per collection (e.g., "1h", "30m") |
 | `collectionInterval` | duration | No | Background poll interval for every site (default "5m"). Effective job window = max(scrapingInterval, collectionInterval). |
-| `logName` | string | Yes | Log file path |
+| `cacheTTL` | duration | No | Storage metrics cache TTL (default "5m") |
+| `logName` | string | No | `"stdout"` (also `""` or `"-"`) for stdout only, or a log file path whose parent directory exists |
 
-## NBU Server Section
+## NBU Servers Section
 
-For multiple servers, use a `nbuservers:` list instead of this single block — each entry takes
-the same fields plus a required, unique `site` (see [Multiple Sites](#multiple-sites)).
+Each `nbuservers:` entry (the legacy `nbuserver:` block takes the same fields, without `site`):
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `scheme` | string | Yes | Protocol (http/https) |
-| `uri` | string | Yes | API base path |
-| `domain` | string | Yes | NetBackup domain |
-| `domainType` | string | Yes | Domain type (NT, vx, etc.) |
-| `host` | string | Yes | NetBackup master server hostname |
+| `site` | string | Yes | Unique site name; becomes the `site` label |
+| `scheme` | string | Yes | Protocol (`http`/`https`) |
+| `uri` | string | No | API base path (default `/netbackup`) |
+| `host` | string | Yes | NetBackup primary server hostname (supports `${VAR}`) |
 | `port` | string | Yes | API port (typically 1556) |
-| `apiVersion` | string | No | API version (14.0, 13.0, 12.0, or 10.0). Auto-detects if omitted. |
-| `apiKey` | string | Yes | NetBackup API key |
-| `contentType` | string | Yes | API content type header |
-| `insecureSkipVerify` | bool or `${VAR}` | No | Skip TLS certificate verification. Native bool or a `${VAR}` reference (e.g. `${NBU1_SKIP_CERTIFICATE}`) resolved at startup; defaults to `false`. |
+| `apiKey` | string | Yes | NetBackup API key (supports `${VAR}`) |
+| `apiVersion` | string | No | Optional pin (14.0, 13.0, 12.0 or 10.0). Omit to auto-detect (recommended). |
+| `insecureSkipVerify` | bool or `${VAR}` | No | Skip TLS certificate verification; defaults to `false`. Last resort — prefer trusting the NetBackup CA. |
 
 ## OpenTelemetry Section (Optional)
 
@@ -196,8 +214,19 @@ the same fields plus a required, unique `site` (see [Multiple Sites](#multiple-s
 | `enabled` | bool | No | Enable OpenTelemetry tracing (default: false) |
 | `endpoint` | string | Yes* | OTLP gRPC endpoint (e.g., "localhost:4317") |
 | `insecure` | bool | No | Use insecure connection (default: false) |
-| `samplingRate` | float | No | Sampling rate 0.0-1.0 (default: 1.0) |
+| `samplingRate` | float | No | Sampling rate 0.0-1.0. Set it explicitly: an omitted value is `0.0`, which samples nothing. |
 
 *Required when `enabled` is `true`
+
+## Collectors Section (Optional)
+
+All collectors are disabled by default. Each degrades gracefully: an endpoint the master lacks, or
+one the API key may not read, is logged and skipped without failing the scrape.
+
+| Collector | Requires | Description |
+|---|---|---|
+| `alerts`, `malware`, `catalog`, `slo` | API 14.0 (NetBackup 11.1+) | Data-protection metrics |
+| `tape` | API 12.0+ (NetBackup 10.5+) | Tape drives, tape media, volume pools, disk pools |
+| `perClient` | — | Per-client backup compliance and lifecycle. `allowlist` lists exact client names; an **empty allowlist emits no per-client series** (there is no "all clients" mode). |
 
 See [Configuration Examples](../config-examples/README.md) for complete sample configs.

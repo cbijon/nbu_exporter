@@ -53,7 +53,7 @@ nav:
       - Setup Guide: opentelemetry-example.md
       - Trace Analysis: trace-analysis-guide.md
   - Migration Guides:
-      - NetBackup 11.0: netbackup-11-migration.md
+      - NetBackup 11.x: netbackup-11-migration.md
       - API 10.5: api-10.5-migration.md
   - Deployment:
       - Full Stack (docker-compose): deploy-stack.md
