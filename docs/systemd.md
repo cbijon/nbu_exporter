@@ -28,7 +28,7 @@ Set `logName: ""` in `config.yaml` so logs go to the journal.
 
 ```bash
 journalctl -u nbu_exporter -f         # follow logs
-sudo systemctl reload nbu_exporter    # live config reload (sends SIGHUP)
+sudo systemctl reload nbu_exporter    # validate config.yaml (SIGHUP); apply changes with: systemctl restart nbu_exporter
 sudo systemctl status nbu_exporter
 ```
 

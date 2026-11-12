@@ -56,6 +56,11 @@ func expandEnv(s string) (string, error) {
 type SafeConfig struct {
 	mu sync.RWMutex
 	C  *Config
+	// Resolver, when set, resolves ${VAR} / ${VAR:-default} references on a freshly
+	// decoded config during ReloadConfig — the same resolution applied at startup
+	// (utils.ResolveSecrets, injected by main to avoid an import cycle). When nil,
+	// only the legacy nbuserver host/apiKey are expanded.
+	Resolver func(*Config) error
 }
 
 // NewSafeConfig creates a new SafeConfig with the provided initial config.
@@ -109,17 +114,23 @@ func (sc *SafeConfig) ReloadConfig(configPath string) (serverChanged bool, err e
 	}
 
 	// Expand ${ENV} references in secret fields before validation.
-	host, err := expandEnv(newCfg.NbuServer.Host)
-	if err != nil {
-		return false, fmt.Errorf("nbuserver.host: %w", err)
-	}
-	newCfg.NbuServer.Host = host
+	if sc.Resolver != nil {
+		if err := sc.Resolver(&newCfg); err != nil {
+			return false, err
+		}
+	} else {
+		host, err := expandEnv(newCfg.NbuServer.Host)
+		if err != nil {
+			return false, fmt.Errorf("nbuserver.host: %w", err)
+		}
+		newCfg.NbuServer.Host = host
 
-	apiKey, err := expandEnv(newCfg.NbuServer.APIKey)
-	if err != nil {
-		return false, fmt.Errorf("nbuserver.apiKey: %w", err)
+		apiKey, err := expandEnv(newCfg.NbuServer.APIKey)
+		if err != nil {
+			return false, fmt.Errorf("nbuserver.apiKey: %w", err)
+		}
+		newCfg.NbuServer.APIKey = apiKey
 	}
-	newCfg.NbuServer.APIKey = apiKey
 
 	// Validate config
 	if err := newCfg.Validate(); err != nil {
@@ -128,18 +139,49 @@ func (sc *SafeConfig) ReloadConfig(configPath string) (serverChanged bool, err e
 
 	// Step 2: Acquire write lock ONLY for pointer swap
 	sc.mu.Lock()
-	oldHost := sc.C.NbuServer.Host
-	oldPort := sc.C.NbuServer.Port
+	old := sc.C
 	sc.C = &newCfg
 	sc.mu.Unlock()
 
-	// Check if NBU server changed (signals cache flush needed)
-	serverChanged = oldHost != newCfg.NbuServer.Host || oldPort != newCfg.NbuServer.Port
+	// Any change to the site list (added/removed site, host, port, key, version,
+	// TLS setting) needs the collection loop rebuilt — signal it to the caller.
+	serverChanged = !sameServers(old, &newCfg)
 
 	log.Info("Configuration reloaded successfully")
 	if serverChanged {
-		log.Info("NBU server address changed, cache will be flushed")
+		log.Info("NetBackup server list changed; storage cache will be flushed")
 	}
 
 	return serverChanged, nil
+}
+
+// serverKey is the comparable connection identity of one configured site.
+type serverKey struct {
+	Site, Scheme, Host, Port, URI, APIKey, APIVersion string
+	Insecure                                          bool
+}
+
+func serverKeys(c *Config) []serverKey {
+	if c == nil {
+		return nil
+	}
+	keys := make([]serverKey, 0, len(c.NbuServers))
+	for _, s := range c.NbuServers {
+		keys = append(keys, serverKey{s.Site, s.Scheme, s.Host, s.Port, s.URI, s.APIKey, s.APIVersion, s.InsecureSkipVerify.Bool()})
+	}
+	return keys
+}
+
+// sameServers reports whether two configs target exactly the same NetBackup sites.
+func sameServers(a, b *Config) bool {
+	ka, kb := serverKeys(a), serverKeys(b)
+	if len(ka) != len(kb) {
+		return false
+	}
+	for i := range ka {
+		if ka[i] != kb[i] {
+			return false
+		}
+	}
+	return true
 }

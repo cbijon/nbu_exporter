@@ -20,7 +20,7 @@ A Prometheus exporter that collects backup job statistics, storage metrics, tape
 - **Automatic API version detection** — probes 14.0 → 13.0 → 12.0 → 10.0 at startup; or pin explicitly
 - **7 Grafana dashboards** — Overview, Jobs, Storage, Data Protection, Tape & Disks, Lifecycle, Multi-site
 - **Prometheus alerting rules** — per-client compliance, tape health, inter-site divergence
-- **Hot config reload** via SIGHUP / fsnotify file watcher
+- **Config validation on change** via SIGHUP / fsnotify file watcher (an invalid edit is rejected and logged; applying changes — sites, collectors, intervals — requires a restart)
 - **Optional OpenTelemetry** distributed tracing (OTLP gRPC)
 - **Health check** endpoint at `/health`
 

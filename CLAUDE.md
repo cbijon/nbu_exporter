@@ -114,7 +114,7 @@ Requires `config.yaml` with sections: `server`, `nbuserver`, optional `opentelem
 - **Context propagation**: All API calls use context for cancellation/timeout
 - **Version detection**: Auto-detects highest supported NBU API version at startup
 - **Storage caching**: TTL cache (5min) avoids redundant API calls on frequent scrapes
-- **Config hot-reload**: SIGHUP signal + fsnotify file watcher trigger config reload without restart
+- **Config reload = validation only**: SIGHUP + fsnotify re-read and validate config.yaml (same `utils.ResolveSecrets` as startup), but the collection loop keeps its startup copy — sites, collectors and intervals change only on restart; a changed `nbuservers` list logs a RESTART warning.
 - **Thread-safe config**: Immutable config wrapper with atomic swap for concurrent access
 - **Span hierarchy**: `prometheus.scrape` → `netbackup.fetch_storage` / `netbackup.fetch_jobs` → `netbackup.fetch_job_page`
 

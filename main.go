@@ -313,11 +313,16 @@ func (s *Server) ReloadConfig(configPath string) error {
 		return err
 	}
 
-	// The background collection loop's targets are built once at startup, so a
-	// changed NBU server configuration needs a restart to take effect. Surface
-	// that instead of silently ignoring the change.
+	// The background collection loop (sites, collectors, intervals) is built once
+	// at startup from its own copy of the config: a reload validates the new file
+	// but applies nothing to collection. Say so instead of implying a live update.
+	if !serverChanged {
+		log.Info("Configuration file validated; collection settings (collectors, intervals) take effect at the next restart")
+	}
 	if serverChanged {
-		log.Warn("NBU server configuration changed; restart the exporter to apply it to the collection loop (live target rebuild is not yet supported)")
+		log.Warn("NetBackup server list changed (site added/removed, host, port, API key, version or TLS setting); " +
+			"RESTART the exporter to apply it — the running collection loop still polls the previous sites " +
+			"(with docker compose: `docker compose up -d` so new NBUx_* variables are injected too)")
 		if s.collector != nil {
 			if cache := s.collector.GetStorageCache(); cache != nil {
 				cache.Flush()
@@ -603,6 +608,9 @@ func main() {
 
 			// Wrap in SafeConfig for thread-safe access
 			safeCfg := models.NewSafeConfig(cfg)
+			// Reloads must resolve ${VAR} references exactly like startup does
+			// (nbuservers[], ${VAR:-default}, insecureSkipVerify).
+			safeCfg.Resolver = utils.ResolveSecrets
 
 			// Setup logging
 			if err := setupLogging(*safeCfg.Get(), debug); err != nil {
