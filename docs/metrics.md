@@ -13,10 +13,10 @@
 | `nbu_jobs_count` | `action`, `policy_type`, `status` | Number of jobs by type, policy, and status |
 | `nbu_jobs_bytes` | `action`, `policy_type`, `status` | Total bytes transferred by jobs |
 | `nbu_status_count` | `action`, `status` | Job count aggregated by action and status |
-| `nbu_jobs_state_count` | `action`, `state` | Job count per lifecycle state (e.g. `ACTIVE`, `QUEUED`, `DONE`) |
-| `nbu_jobs_queued_count` | `action`, `reason` | Queued job count per NetBackup queue reason code |
+| `nbu_jobs_state_count` | `action`, `state` | Job count per state: `DONE` = finished inside the scraping window; `ACTIVE`/`QUEUED`/… = point-in-time count of jobs not finished yet (separate `state ne 'DONE'` query) |
+| `nbu_jobs_queued_count` | `action`, `reason` | Jobs currently queued, per NetBackup `jobQueueReason` code (point-in-time) |
 | `nbu_jobs_files_count` | `action`, `policy_type` | Total number of files processed by jobs |
-| `nbu_jobs_dedup_ratio` | `action`, `policy_type` | Mean deduplication ratio across jobs (emitted only when jobs exist) |
+| `nbu_jobs_dedup_ratio` | `action`, `policy_type` | Mean deduplication ratio over jobs that report one (`dedupRatio > 0`); absent when none did |
 | `nbu_job_duration_seconds` | `action`, `policy_type` | Histogram of completed job durations in seconds |
 
 The `nbu_job_duration_seconds` histogram covers completed jobs only (those with an
@@ -29,7 +29,7 @@ The `nbu_job_duration_seconds` histogram covers completed jobs only (those with 
 |--------|--------|-------------|
 | `nbu_disk_bytes` | `name`, `type`, `size` | Storage unit capacity; `size` is `free` or `used` |
 | `nbu_disk_capacity_bytes` | `name`, `type` | Authoritative total capacity reported by the API |
-| `nbu_storage_max_concurrent_jobs` | `name`, `type` | Maximum concurrent jobs the unit accepts |
+| `nbu_storage_max_concurrent_jobs` | `name`, `type` | Maximum concurrent jobs the unit accepts (`maxConcurrentJobs`; tape units report `maxConcurrentDrives`) |
 | `nbu_storage_max_fragment_size_bytes` | `name`, `type` | Maximum fragment size in bytes |
 | `nbu_storage_info` | `name`, `type`, `subtype`, `is_cloud`, `worm_capable`, `use_worm`, `replication_capable`, `instant_access` | Storage unit capabilities (value always `1`) |
 
@@ -44,7 +44,7 @@ The `nbu_job_duration_seconds` histogram covers completed jobs only (those with 
 These metrics are exposed by optional sub-collectors. **All default to disabled** — enable
 only the ones your appliance and account permissions support. They are graceful: a failing
 endpoint is logged and skipped without affecting core storage/jobs metrics or flipping
-`nbu_up` to `0`. The alerts/malware/catalog/SLO collectors require NetBackup 11.2 (API
+`nbu_up` to `0`. The alerts/malware/catalog/SLO collectors require NetBackup 11.1+ (API
 `version=14.0`); the **`tape`** collector works on older releases too (`/storage/drives` on
 NBU 10.0+; `/storage/tape-media`, `/storage/robots-device-hosts`, `/storage/tape-volume-pools`
 and `/storage/disk-pools` on 10.5+).
@@ -82,8 +82,12 @@ Notes on the implemented attributes (these differ from early guesses):
   `enforcement_type` label was dropped.
 - **Tape collector** (`collectors.tape`) is one collector over five endpoints with
   per-endpoint graceful degradation. The `tape-volume-pools` and `disk-pools` endpoints are
-  API v12.0+ (NBU 10.5+) and are skipped with a debug log on older releases. Tape media is
-  offset-paginated and aggregated client-side; `robot_type` is read from the per-drive
+  API v12.0+ (NBU 10.5+) and are skipped with a debug log on older releases. Pagination
+  follows the API spec per endpoint: `tape-media` and `tape-volume-pools` are cursor-paginated
+  (`page[after]`), `drives` and `disk-pools` offset-paginated; rows are aggregated client-side
+  and de-duplicated (a drive/media/pool seen on two pages is counted once). The drive name is
+  the resource `id`, its media server the first `devicePaths[].deviceHost` when the top-level
+  attribute is absent; `robot_type` is read from the per-drive
   attribute (there is no bulk robot-listing endpoint, so a standalone robot type/count metric
   is not exposed). The drive `status` label carries the **raw** `driveStatus` enum
   (`DRIVE_STATUS_UP`/`DRIVE_STATUS_DOWN`/`DRIVE_STATUS_DISABLED`/…) and `nbu_tape_media_count`
@@ -133,8 +137,9 @@ collectors:
 |--------|--------|-------------|
 | `nbu_up` | — | `1` if any collection succeeded, `0` if all collections failed |
 | `nbu_api_version` | `version` | Currently active NetBackup API version (14.0, 13.0, 12.0, or 10.0) |
-| `nbu_response_time_ms` | — | NetBackup API response time in milliseconds |
+| `nbu_response_time_ms` | `site` | Duration of the `storage-units` API request in the latest collection cycle (ms) |
 | `nbu_last_scrape_timestamp_seconds` | `source` | Unix timestamp of the last successful collection (`source`: `storage` or `jobs`) |
+| `nbu_exporter_build_info` | `version`, `goversion` | Exporter build info; constant `1`, with the running exporter version and Go version. **No `site` label** — it describes the exporter process, not a NetBackup primary. |
 
 ## Label Encoding
 

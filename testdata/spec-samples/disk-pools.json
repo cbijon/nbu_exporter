@@ -1,0 +1,98 @@
+{
+ "data": [
+  {
+   "attributes": {
+    "availableSpaceBytes": 1,
+    "comment": "sample",
+    "diskPoolCapabilities": [
+     "PATCH_WORK"
+    ],
+    "diskPoolState": "UP",
+    "diskVolumes": [
+     {
+      "diskMediaId": "sample",
+      "diskVolumeCapabilities": [
+       "WORM_INDELIBLE"
+      ],
+      "freeSizeBytes": 1,
+      "id": "sample",
+      "isReplicationSource": true,
+      "isReplicationTarget": true,
+      "name": "sample",
+      "rawSizeBytes": 1,
+      "state": "UP",
+      "wormIndelibleMaximumInterval": 1,
+      "wormIndelibleMinimumInterval": 1
+     }
+    ],
+    "highWaterMark": 1,
+    "lowWaterMark": 1,
+    "maximumIoStreams": {
+     "limitIoStreams": true,
+     "streamsPerVolume": 1
+    },
+    "mediaServersCount": 1,
+    "name": "sample",
+    "rawSizeBytes": 1,
+    "readOnly": true,
+    "sType": "sample",
+    "storageCategory": "ADVANCED_DISK",
+    "usableSizeBytes": 1,
+    "usedCapacityBytes": 1,
+    "wormCapable": true
+   },
+   "id": "sample",
+   "links": {
+    "self": {
+     "href": "sample"
+    }
+   },
+   "relationships": {
+    "storageServers": {
+     "data": [
+      {
+       "id": "sample",
+       "type": "storageServer"
+      }
+     ],
+     "links": {
+      "related": {
+       "href": "sample"
+      }
+     }
+    }
+   },
+   "type": "diskPool"
+  }
+ ],
+ "links": {
+  "first": {
+   "href": "sample"
+  },
+  "last": {
+   "href": "sample"
+  },
+  "next": {
+   "href": "sample"
+  },
+  "prev": {
+   "href": "sample"
+  },
+  "self": {
+   "href": "sample"
+  }
+ },
+ "meta": {
+  "pagination": {
+   "count": 1,
+   "first": 1,
+   "last": 1,
+   "limit": 1,
+   "next": 1,
+   "offset": 1,
+   "page": 1,
+   "pages": 1,
+   "prev": 1
+  }
+ }
+}

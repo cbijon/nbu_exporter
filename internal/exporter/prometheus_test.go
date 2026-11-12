@@ -57,7 +57,7 @@ func TestNewNbuCollectorExplicitVersion(t *testing.T) {
 			cfg.NbuServer.URI = ""
 			cfg.NbuServer.APIKey = testAPIKey
 			cfg.NbuServer.APIVersion = tt.apiVersion
-			cfg.NbuServer.InsecureSkipVerify = true
+			cfg.NbuServer.InsecureSkipVerify = models.NewEnvBool(true)
 			cfg.Server.ScrapingInterval = "5m"
 
 			// Create collector with explicit version
@@ -122,7 +122,7 @@ func createTestConfigWithServer(server *httptest.Server) models.Config {
 	cfg.NbuServer.URI = ""
 	cfg.NbuServer.APIKey = testAPIKey
 	cfg.NbuServer.APIVersion = "" // Empty to trigger detection
-	cfg.NbuServer.InsecureSkipVerify = true
+	cfg.NbuServer.InsecureSkipVerify = models.NewEnvBool(true)
 	cfg.Server.ScrapingInterval = "5m"
 	return cfg
 }
@@ -238,7 +238,7 @@ func TestNewNbuCollectorDetectionFailure(t *testing.T) {
 			cfg.NbuServer.URI = ""
 			cfg.NbuServer.APIKey = testAPIKey
 			cfg.NbuServer.APIVersion = "" // Empty to trigger detection
-			cfg.NbuServer.InsecureSkipVerify = true
+			cfg.NbuServer.InsecureSkipVerify = models.NewEnvBool(true)
 			cfg.Server.ScrapingInterval = "5m"
 
 			// Create collector - should fail
@@ -270,7 +270,7 @@ func TestNbuCollectorAPIVersionMetric(t *testing.T) {
 	cfg.NbuServer.URI = ""
 	cfg.NbuServer.APIKey = testAPIKey
 	cfg.NbuServer.APIVersion = models.APIVersion130
-	cfg.NbuServer.InsecureSkipVerify = true
+	cfg.NbuServer.InsecureSkipVerify = models.NewEnvBool(true)
 	cfg.Server.ScrapingInterval = "5m"
 
 	// Create collector
@@ -323,7 +323,7 @@ func TestNbuCollectorDescribe(t *testing.T) {
 	cfg.NbuServer.URI = ""
 	cfg.NbuServer.APIKey = testAPIKey
 	cfg.NbuServer.APIVersion = models.APIVersion130
-	cfg.NbuServer.InsecureSkipVerify = true
+	cfg.NbuServer.InsecureSkipVerify = models.NewEnvBool(true)
 	cfg.Server.ScrapingInterval = "5m"
 
 	// Create collector
@@ -398,16 +398,16 @@ func TestNbuCollectorCreateScrapeSpanNilSafe(t *testing.T) {
 			ScrapingInterval: "5m",
 		},
 		NbuServer: struct {
-			Port               string `yaml:"port"`
-			Scheme             string `yaml:"scheme"`
-			URI                string `yaml:"uri"`
-			Domain             string `yaml:"domain"`
-			DomainType         string `yaml:"domainType"`
-			Host               string `yaml:"host"`
-			APIKey             string `yaml:"apiKey"`
-			APIVersion         string `yaml:"apiVersion"`
-			ContentType        string `yaml:"contentType"`
-			InsecureSkipVerify bool   `yaml:"insecureSkipVerify"`
+			Port               string         `yaml:"port"`
+			Scheme             string         `yaml:"scheme"`
+			URI                string         `yaml:"uri"`
+			Domain             string         `yaml:"domain"`
+			DomainType         string         `yaml:"domainType"`
+			Host               string         `yaml:"host"`
+			APIKey             string         `yaml:"apiKey"`
+			APIVersion         string         `yaml:"apiVersion"`
+			ContentType        string         `yaml:"contentType"`
+			InsecureSkipVerify models.EnvBool `yaml:"insecureSkipVerify"`
 		}{
 			Host:       testServerNBUMaster,
 			Port:       "1556",
@@ -461,16 +461,16 @@ func TestNbuCollectorCreateScrapeSpanWithTracer(t *testing.T) {
 			ScrapingInterval: "5m",
 		},
 		NbuServer: struct {
-			Port               string `yaml:"port"`
-			Scheme             string `yaml:"scheme"`
-			URI                string `yaml:"uri"`
-			Domain             string `yaml:"domain"`
-			DomainType         string `yaml:"domainType"`
-			Host               string `yaml:"host"`
-			APIKey             string `yaml:"apiKey"`
-			APIVersion         string `yaml:"apiVersion"`
-			ContentType        string `yaml:"contentType"`
-			InsecureSkipVerify bool   `yaml:"insecureSkipVerify"`
+			Port               string         `yaml:"port"`
+			Scheme             string         `yaml:"scheme"`
+			URI                string         `yaml:"uri"`
+			Domain             string         `yaml:"domain"`
+			DomainType         string         `yaml:"domainType"`
+			Host               string         `yaml:"host"`
+			APIKey             string         `yaml:"apiKey"`
+			APIVersion         string         `yaml:"apiVersion"`
+			ContentType        string         `yaml:"contentType"`
+			InsecureSkipVerify models.EnvBool `yaml:"insecureSkipVerify"`
 		}{
 			Host:       testServerNBUMaster,
 			Port:       "1556",
@@ -530,16 +530,16 @@ func TestNbuCollectorCollectWithoutTracing(t *testing.T) {
 			ScrapingInterval: "5m",
 		},
 		NbuServer: struct {
-			Port               string `yaml:"port"`
-			Scheme             string `yaml:"scheme"`
-			URI                string `yaml:"uri"`
-			Domain             string `yaml:"domain"`
-			DomainType         string `yaml:"domainType"`
-			Host               string `yaml:"host"`
-			APIKey             string `yaml:"apiKey"`
-			APIVersion         string `yaml:"apiVersion"`
-			ContentType        string `yaml:"contentType"`
-			InsecureSkipVerify bool   `yaml:"insecureSkipVerify"`
+			Port               string         `yaml:"port"`
+			Scheme             string         `yaml:"scheme"`
+			URI                string         `yaml:"uri"`
+			Domain             string         `yaml:"domain"`
+			DomainType         string         `yaml:"domainType"`
+			Host               string         `yaml:"host"`
+			APIKey             string         `yaml:"apiKey"`
+			APIVersion         string         `yaml:"apiVersion"`
+			ContentType        string         `yaml:"contentType"`
+			InsecureSkipVerify models.EnvBool `yaml:"insecureSkipVerify"`
 		}{
 			Host:       testServerNBUMaster,
 			Port:       "1556",
@@ -648,16 +648,16 @@ func TestNbuCollectorTracingDisabled(t *testing.T) {
 			ScrapingInterval: "5m",
 		},
 		NbuServer: struct {
-			Port               string `yaml:"port"`
-			Scheme             string `yaml:"scheme"`
-			URI                string `yaml:"uri"`
-			Domain             string `yaml:"domain"`
-			DomainType         string `yaml:"domainType"`
-			Host               string `yaml:"host"`
-			APIKey             string `yaml:"apiKey"`
-			APIVersion         string `yaml:"apiVersion"`
-			ContentType        string `yaml:"contentType"`
-			InsecureSkipVerify bool   `yaml:"insecureSkipVerify"`
+			Port               string         `yaml:"port"`
+			Scheme             string         `yaml:"scheme"`
+			URI                string         `yaml:"uri"`
+			Domain             string         `yaml:"domain"`
+			DomainType         string         `yaml:"domainType"`
+			Host               string         `yaml:"host"`
+			APIKey             string         `yaml:"apiKey"`
+			APIVersion         string         `yaml:"apiVersion"`
+			ContentType        string         `yaml:"contentType"`
+			InsecureSkipVerify models.EnvBool `yaml:"insecureSkipVerify"`
 		}{
 			Host:       testServerNBUMaster,
 			Port:       "1556",
@@ -725,16 +725,16 @@ func TestNbuCollectorStorageCacheIntegration(t *testing.T) {
 			CacheTTL:         "1m", // 1 minute cache for testing
 		},
 		NbuServer: struct {
-			Port               string `yaml:"port"`
-			Scheme             string `yaml:"scheme"`
-			URI                string `yaml:"uri"`
-			Domain             string `yaml:"domain"`
-			DomainType         string `yaml:"domainType"`
-			Host               string `yaml:"host"`
-			APIKey             string `yaml:"apiKey"`
-			APIVersion         string `yaml:"apiVersion"`
-			ContentType        string `yaml:"contentType"`
-			InsecureSkipVerify bool   `yaml:"insecureSkipVerify"`
+			Port               string         `yaml:"port"`
+			Scheme             string         `yaml:"scheme"`
+			URI                string         `yaml:"uri"`
+			Domain             string         `yaml:"domain"`
+			DomainType         string         `yaml:"domainType"`
+			Host               string         `yaml:"host"`
+			APIKey             string         `yaml:"apiKey"`
+			APIVersion         string         `yaml:"apiVersion"`
+			ContentType        string         `yaml:"contentType"`
+			InsecureSkipVerify models.EnvBool `yaml:"insecureSkipVerify"`
 		}{
 			Host:               serverHost,
 			Port:               serverPort,
@@ -742,7 +742,7 @@ func TestNbuCollectorStorageCacheIntegration(t *testing.T) {
 			URI:                "",
 			APIKey:             testKeyName,
 			APIVersion:         "13.0",
-			InsecureSkipVerify: true,
+			InsecureSkipVerify: models.NewEnvBool(true),
 		},
 	}
 
@@ -797,16 +797,16 @@ func TestNbuCollectorHelpStringIncludesTTL(t *testing.T) {
 			CacheTTL:         "2m",
 		},
 		NbuServer: struct {
-			Port               string `yaml:"port"`
-			Scheme             string `yaml:"scheme"`
-			URI                string `yaml:"uri"`
-			Domain             string `yaml:"domain"`
-			DomainType         string `yaml:"domainType"`
-			Host               string `yaml:"host"`
-			APIKey             string `yaml:"apiKey"`
-			APIVersion         string `yaml:"apiVersion"`
-			ContentType        string `yaml:"contentType"`
-			InsecureSkipVerify bool   `yaml:"insecureSkipVerify"`
+			Port               string         `yaml:"port"`
+			Scheme             string         `yaml:"scheme"`
+			URI                string         `yaml:"uri"`
+			Domain             string         `yaml:"domain"`
+			DomainType         string         `yaml:"domainType"`
+			Host               string         `yaml:"host"`
+			APIKey             string         `yaml:"apiKey"`
+			APIVersion         string         `yaml:"apiVersion"`
+			ContentType        string         `yaml:"contentType"`
+			InsecureSkipVerify models.EnvBool `yaml:"insecureSkipVerify"`
 		}{
 			Host:               serverHost,
 			Port:               serverPort,
@@ -814,7 +814,7 @@ func TestNbuCollectorHelpStringIncludesTTL(t *testing.T) {
 			URI:                "",
 			APIKey:             testKeyName,
 			APIVersion:         "13.0",
-			InsecureSkipVerify: true,
+			InsecureSkipVerify: models.NewEnvBool(true),
 		},
 	}
 
@@ -873,7 +873,7 @@ func TestNbuCollectorNbuUpHasSiteLabel(t *testing.T) {
 	cfg.NbuServer.Port = serverPort
 	cfg.NbuServer.APIKey = testAPIKey
 	cfg.NbuServer.APIVersion = models.APIVersion130
-	cfg.NbuServer.InsecureSkipVerify = true
+	cfg.NbuServer.InsecureSkipVerify = models.NewEnvBool(true)
 	// SetDefaults (called inside NewNbuCollector via performVersionDetectionIfNeeded)
 	// promotes NbuServer -> NbuServers[0].Site = serverHost
 
@@ -921,7 +921,7 @@ func TestSnapshotCollectorEmitsAllSites(t *testing.T) {
 
 	// Publish a two-site snapshot: paris up, lyon down.
 	store.Store(&Snapshot{Sites: map[string]*SiteSnapshot{
-		"paris": {Site: "paris", APIVersion: models.APIVersion130, Up: true},
+		"paris": {Site: "paris", APIVersion: models.APIVersion130, Up: true, ResponseTime: 1500 * time.Microsecond},
 		"lyon":  {Site: "lyon", APIVersion: models.APIVersion130, Up: false},
 	}})
 
@@ -947,6 +947,16 @@ func TestSnapshotCollectorEmitsAllSites(t *testing.T) {
 	}
 	assert.True(t, apiVersionSites["paris"], "up site should emit nbu_api_version")
 	assert.False(t, apiVersionSites["lyon"], "down site must not emit nbu_api_version")
+
+	rtt := map[string]float64{}
+	for _, mf := range mfs {
+		if mf.GetName() == "nbu_response_time_ms" {
+			for _, m := range mf.GetMetric() {
+				rtt[labelValue(m, "site")] = m.GetGauge().GetValue()
+			}
+		}
+	}
+	assert.Equal(t, map[string]float64{"paris": 1.5}, rtt, "response time emitted in ms for the up site only")
 }
 
 // upValuesBySite extracts nbu_up gauge values keyed by their site label.
@@ -961,4 +971,20 @@ func upValuesBySite(mfs []*dto.MetricFamily) map[string]float64 {
 		}
 	}
 	return out
+}
+
+// A series emitted twice must not turn the whole scrape into an HTTP 500: the
+// duplicate is dropped and every other series is still gathered.
+func TestForwardUniqueDropsDuplicateSeries(t *testing.T) {
+	desc := prometheus.NewDesc("nbu_test_dup", "test", []string{"site"}, nil)
+	in := make(chan prometheus.Metric, 4)
+	out := make(chan prometheus.Metric, 4)
+	in <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, 1, "a")
+	in <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, 1, "a")
+	in <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, 2, "b")
+	close(in)
+	dropped := forwardUnique(in, out)
+	close(out)
+	assert.Equal(t, 1, dropped)
+	assert.Len(t, out, 2)
 }

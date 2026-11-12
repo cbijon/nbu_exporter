@@ -1,0 +1,90 @@
+{
+ "data": [
+  {
+   "attributes": {
+    "acs": 1,
+    "assignedHost": "sample",
+    "bus": "sample",
+    "cleaningComment": "sample",
+    "cleaningFrequency": 1,
+    "clusterServer": "sample",
+    "controlHostname": "sample",
+    "deviceHost": "sample",
+    "devicePath": "sample",
+    "devicePaths": [
+     {
+      "bus": 1,
+      "deviceHost": "sample",
+      "devicePath": "sample",
+      "driveControl": "DRIVE_CONTROL_DOWN",
+      "driveName": "sample",
+      "hostId": "sample",
+      "isEnabled": true,
+      "isNdmp": true,
+      "lun": 1,
+      "ndmpHost": "sample",
+      "pathIndex": 1,
+      "pathStatus": "PATH_STATUS_UP",
+      "port": 1,
+      "robotControl": "NA",
+      "scsiProtection": "SCSI_DEFAULT",
+      "target": 1
+     }
+    ],
+    "drive": 1,
+    "driveComment": "sample",
+    "driveControl": "DRIVE_CONTROL_DOWN",
+    "driveControlDisplayValue": "sample",
+    "driveIndex": 1,
+    "driveStatus": "DRIVE_STATUS_UP",
+    "driveType": "DT_HCART",
+    "enabled": true,
+    "externalMediaId": "sample",
+    "inquiryString": "sample",
+    "isControlUp": true,
+    "label": "sample",
+    "lastCleaningTime": "2026-11-12T10:00:00.000Z",
+    "lastMountTime": "2026-11-12T10:00:00.000Z",
+    "localControl": true,
+    "lsm": 1,
+    "lun": "sample",
+    "mountTime": "sample",
+    "ndmpHost": "sample",
+    "panel": 1,
+    "port": "sample",
+    "ready": true,
+    "recordedMediaId": "sample",
+    "requestId": "sample",
+    "robotDriveNumber": 1,
+    "robotNumber": 1,
+    "robotType": "NA",
+    "scanHost": "sample",
+    "serialNumber": "sample",
+    "sharedDrive": true,
+    "tapeAlert1": "READ_WARNING",
+    "tapeAlert2": "READ_WARNING",
+    "tapeAlertEnabled": true,
+    "target": "sample",
+    "user": "sample",
+    "vendorDriveName": "sample",
+    "vmHost": "sample",
+    "volumeHeader": "sample",
+    "worldWideId": "sample",
+    "writeEnabled": true
+   },
+   "id": "sample",
+   "type": "drive"
+  }
+ ],
+ "meta": {
+  "pagination": {
+   "count": 1,
+   "first": 1,
+   "last": 1,
+   "limit": 1,
+   "next": 1,
+   "offset": 1,
+   "prev": 1
+  }
+ }
+}

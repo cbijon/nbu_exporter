@@ -7,6 +7,168 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Tape collector matched no real NetBackup release (10.5 → 11.2 specs): `/storage/tape-media` and `/storage/tape-volume-pools` are cursor-paginated (`page[after]`, string `meta.pagination.next`) — the offset loop could re-read page 1 up to 1000× and inflate `nbu_tape_media_count`, and the integer `next` made every `tape-volume-pools` response fail to decode (no `nbu_tape_pool_partially_full`). Media `robot_type` is read from the nested `robot{}` object (was always empty); drive names come from `data[].id`, media server falls back to `devicePaths[]`. Drives and disk-pools now follow offset pagination with a non-advancing guard.
+- `nbu_jobs_queued_count` and the `ACTIVE`/`QUEUED` part of `nbu_jobs_state_count` were always empty: the windowed `endTime gt` filter never matches unfinished jobs. A second `state ne 'DONE'` pass now feeds the point-in-time state/queue breakdowns (failure only degrades that breakdown).
+- `nbu_jobs_dedup_ratio` averaged in jobs reporting no ratio (tape duplications, imports), dragging the MSDP mean toward 0; only jobs with `dedupRatio > 0` now contribute.
+- `nbu_response_time_ms` was declared but never emitted; it now reports the storage-units request duration per site.
+- `nbuservers[].host` / `apiKey` `${VAR}` references are expanded (upstream only expanded the legacy `nbuserver:` block), with the empty-credential guard per site.
+- Alerting: `NbuBackupSuccessRateLow` never fired when *every* backup failed (empty numerator) and was global; it is now per site with a zero fallback. `NbuJobsQueuedSustained`, `NbuStorageAlmostFull`/`Warning` are per site (same STU name on two masters no longer merges). `NbuInterSiteDivergence` now also flags a reachable site with no BACKUP job at all. New `nbu.rules_test.yml`; CI runs promtool on all rule files.
+- Dashboards: panels with several queries shared refId `A` (Grafana dropped/errored them — e.g. Job duration p50/p95, Used capacity); refIds are now assigned by the generator and validated. Success-rate / failed / DOWN / UNKNOWN / infected stats show 0 instead of "No data" when the underlying data exists; bar charts are labelled per series; lifecycle duration quantiles no longer apply `rate()` to the per-window histogram; compliance pie counts compliant vs non-compliant clients; tables hide `instance`/`job`.
+- Multi-site: one unreachable master blanked or stalled every site. The collection cycle published its snapshot only once *all* sites finished, and version detection retried the same network failure for each of the 4 API versions (~75 s per version when the port is closed, up to 12 min per version when a firewall drops packets), every cycle. Detection now stops at the first transport error, each site is bounded by the collection interval, and every site is published as soon as it is collected (a site still collecting keeps its previous results). Measured: healthy site visible after 1 s instead of nothing for > 3 min; the dead master reports `nbu_up=0` with the reason in `/health`.
+- `/metrics` returned HTTP 500 — losing every series of every site — whenever one series was emitted twice (a drive/pool/volume repeated across pages, a duplicated allowlist entry). Duplicates are now dropped centrally with a warning, and the tape collector dedupes drives (name+host), media (barcode) and pools (name).
+- Per-client lifecycle (`nbu_client_last_job_success_seconds`) only knew successes seen in the scraping window since the exporter started: after any restart a client whose last tape copy/replication was older than the window had no series, so the overdue panels and `NbuClientNoRecentTapeCopy`/`NoRecentReplication` could never fire for it. Each cycle now looks up the latest successful BACKUP/DUPLICATION/IMPORT per allowlisted client (`sort=-endTime`, `limit=1`).
+- Config reload (SIGHUP / file watcher) failed on every `nbuservers:` config (`${VAR}` left literal; used a stale copy of the env expansion) and only compared the first server's host/port, so adding a site went unnoticed. It now resolves exactly like startup and warns to RESTART on any site-list change. Docs no longer claim reload applies changes (the collection loop keeps its startup config).
+- Cursor pagination stops if the server echoes the same cursor (previously looped until the context deadline).
+- `nbu_storage_max_concurrent_jobs` falls back to `maxConcurrentDrives` for tape storage units (spec `oneOf`: tape units have no `maxConcurrentJobs`).
+- Helm chart default config: `nbuservers:` format, no `apiVersion: 13.0` pin, dead `domain`/`contentType` fields removed.
+- Deployment: root `config.yaml` listens on `0.0.0.0` (with `localhost` Prometheus could not scrape the container while the healthcheck stayed green); compose files forward `NBU2_*` for the second master and `NBU1_SKIP_CERTIFICATE` (ghcr); `NBU_TAG`/`NBU_IMAGE_OWNER` select the GHCR image; GoReleaser publishes under the repository owner (forks can release); the phantom `otel-collector` scrape job is commented out.
+
+### Added
+
+- `scripts/gen_spec_samples.py` + `testdata/spec-samples/`: one fully-typed response per decoded endpoint generated from the Veritas OpenAPI specs; `internal/models/spec_samples_test.go` decodes them with the real models and checks every field the collectors read is populated.
+- Docs: trusting the NetBackup CA with `SSL_CERT_DIR` (TLS verification stays on), with commented `nbu-ca` volume/env in `docker-compose.yml`.
+
+### Changed
+
+- Documentation brought in line with the code for NetBackup 11.x: `nbuservers:` format everywhere, auto-detection instead of version pins, reload = validation only, CA trust instead of `insecureSkipVerify`, post-deploy checklist in the README, rewritten NetBackup 11.x migration / deployment verification / quick reference guides, current config examples. `deploy/nbu_exporter.env.example`, `docker-compose-otel.yaml` and `make run-docker` now pass the `NBU1_*` variables the shipped `config.yaml` needs; obsolete `scripts/verify-deployment.sh` removed.
+
+- API version mapping: `14.0` is introduced by NetBackup **11.1** (per the 11.1 API Getting Started "What's New"), not 11.2 — docs, comments, examples and the HTTP 406 help text updated (the latter still listed the removed `3.0`). Example configs no longer pin `13.0` for multi-site.
+- Synced with upstream `fjacquet/nbu_exporter` (64 commits: `/livez`/`/readyz`, env-driven TLS skip, `${VAR:-default}`, build-info metric, Alpine image, systemd unit); duplicate `nbu-lifecycle.rules.yml` dropped in favour of the per-site rule files.
+
+### Security
+
+- Go 1.27.4 (`go` directive, builder image) to clear GO-2026-6859 (`net/http`).
+
+- Build with Go 1.27.2 to fix the Go 1.27.1 standard library vulnerabilities flagged by govulncheck (GO-2026-6603, GO-2026-6605, GO-2026-6607, GO-2026-6608, GO-2026-6610, GO-2026-6611, GO-2026-6613, GO-2026-6617 in `net/http`, `crypto/tls`, `mime/multipart`).
+- Update dependencies with `go get -u ./...`: `golang.org/x/net` v0.59.0 -> v0.60.0, `golang.org/x/sys` v0.48.0 -> v0.49.0, `golang.org/x/sync` v0.23.0 -> v0.24.0, `github.com/prometheus/client_golang` v1.24.1 -> v1.25.0, `genproto` googleapis api/rpc refreshed. `google.golang.org/grpc` kept at 1.83.2 per the existing note.
+- Update the golangci-lint pin to v2.14.0, which type-checks against the Go 1.27.2 standard library (v2.13.2 cannot).
+
+## [5.3.3] - 2026-10-03
+
+### Added
+
+- CI: security workflow added, calling the shared `go-security` reusable workflow from `fjacquet/ci`.
+
+### Changed
+
+- Go 1.26.6 -> 1.27.1 (`go` directive in `go.mod`, Dockerfile builder image).
+- Makefile tool pins: golangci-lint v2.12.2 -> v2.13.2, goreleaser v2.16.0 -> v2.18.0, govulncheck `latest` -> v1.8.0.
+- Dependencies refreshed with `go get -u ./...`: OpenTelemetry 1.46.0 -> 1.47.0,
+  `prometheus/common` 0.71.0 -> 0.72.0.
+- `google.golang.org/grpc` kept at 1.83.2: 1.84.0 is affected by **GO-2026-6443**.
+
+## [5.3.2] - 2026-09-13
+
+### Security
+
+- `google.golang.org/grpc` 1.83.0 -> 1.83.2, fixing **GHSA-vp52-pcj8-j9qc** and
+  **GHSA-2v4p-qf9q-27wj** (HIGH), pulled in with an `otel` 1.45.0 -> 1.46.0 refresh.
+
+## [5.3.0] - 2026-08-15
+
+### Added
+
+- `${VAR:-default}` fallbacks in config env references, ported from `pscale_exporter`.
+  Shell / docker-compose semantics: the variable falls back when unset *or* empty, and
+  such a reference never aborts startup. A bare `${VAR}` still fails loudly when the
+  variable is *unset*; an exported-but-empty one expands to the empty string, as it
+  always has.
+  Credential fields are stricter: a field written as an env reference that resolves to
+  nothing is now rejected, so a stray `NBU1_PASSWORD=` line fails at startup instead
+  of authenticating with an empty credential. The error names only the config field:
+  config-load failures are logged, and every part of a credential field — the variable
+  name included — is potentially sensitive. The shipped `config.yaml` now uses
+  `insecureSkipVerify: "${NBU1_SKIP_CERTIFICATE:-false}"`, so the setting is env-driven out of the box
+  yet still resolves to `false` — this repo's original shipped default — on a host that
+  never exported the variable.
+
+## [5.1.0] - 2026-08-01
+
+### Added
+
+- `HEALTHCHECK` added to the published Docker image, checking `/livez`. See
+  ADR-0006.
+
+## [5.0.0] - 2026-08-01
+
+### Added
+
+- `/livez` and `/readyz`: probe endpoints that always answer 200, with no
+  dependency on site reachability or the collection cycle. See ADR-0005.
+
+### Changed
+
+- `/health` always answers 200, never 503, and its body is now JSON
+  (`sites: [{site, ok, last_scrape, err}]`) instead of plain text. It no
+  longer makes a live NetBackup API call — it reads the same cached
+  snapshot `/metrics` reads. See ADR-0005. **Breaking**: anything parsing
+  the old plain-text body or gating on the old 503 status needs updating.
+- The chart's default `livenessProbe`/`readinessProbe` now point at
+  `/livez`/`/readyz` instead of `/health`.
+
+## [4.1.0] - 2026-07-14
+
+### Added
+
+- **Env-driven TLS verification skip (`NBU1_SKIP_CERTIFICATE`)** — the per-server `insecureSkipVerify` setting now accepts either a native YAML boolean or a `${VAR}` environment reference (e.g. `${NBU1_SKIP_CERTIFICATE}`), resolved at startup, matching the existing `${NBU1_*}` pattern. The active default is unchanged; the env form is opt-in via a documented comment in `config.yaml`.
+
+## [4.0.4] - 2026-07-03
+
+### Added
+
+- **`nbu_exporter_build_info` metric**: a constant `1` gauge carrying the running
+  exporter `version` and `goversion` labels, so a `/metrics` scrape reveals exactly which
+  build is deployed. The version comes from `-ldflags "-X main.version=..."` (GoReleaser
+  injects the release tag; the Makefile injects `git describe`; local `go build` reports
+  `dev`). Unlike the per-site collectors, this metric carries no `site` label — it describes
+  the exporter process itself ([#53](https://github.com/fjacquet/nbu_exporter/pull/53)).
+
+## [4.0.3] - 2026-07-03
+
+### Added
+
+- **systemd deployment**: a packaged unit file, environment file, and accompanying guide
+  for running the exporter under systemd ([#52](https://github.com/fjacquet/nbu_exporter/pull/52)).
+
+## [4.0.2] - 2026-07-01
+
+### Added
+
+- Documentation on handling special characters in the API key value.
+- MkDocs now uses the project brand icon as its favicon and logo
+  ([#50](https://github.com/fjacquet/nbu_exporter/pull/50), [#51](https://github.com/fjacquet/nbu_exporter/pull/51)).
+
+## [4.0.1] - 2026-06-20
+
+### Added
+
+- **Full-stack deployment guide** (`docs/deploy-stack.md`, thanks **@cbijon**): end-to-end
+  docker-compose walkthrough — API-key generation, single- and multi-site config, verification,
+  alerting, optional collectors, and production hardening. Linked from the README and the docs
+  "Deployment" nav. The README was also rewritten around the docker-compose stack as the
+  recommended path (feature list, inline config example, dashboards table)
+  ([#45](https://github.com/fjacquet/nbu_exporter/pull/45)).
+
+### Changed
+
+- README quickstart now points at `.env` rather than `config.yaml`.
+- CI migrated to the `fjacquet/ci` reusable (make-based) workflows, and the `security`
+  workflow is now advisory to match the central default
+  ([#46](https://github.com/fjacquet/nbu_exporter/pull/46), [#47](https://github.com/fjacquet/nbu_exporter/pull/47)).
+
+### Fixed
+
+- **Per-client, tape, and multi-site alerting rules are now actually loaded by the bundled
+  stack.** `rules-perclient.yml`, `rules-tape.yml`, and `rules-multisite.yml` shipped with unit
+  tests but were never wired into `prometheus.yml` (`rule_files:`) or mounted by `docker-compose`
+  — only `nbu.rules.yml` was. All four files are now mounted into `/etc/prometheus/rules/` and
+  listed under `rule_files:`, so their alerts evaluate out of the box
+  ([#45](https://github.com/fjacquet/nbu_exporter/pull/45)).
+- Release packaging: corrected the Homebrew cask token environment variable and added a
+  `skip_upload` guard ([#49](https://github.com/fjacquet/nbu_exporter/pull/49)).
+
 ## [4.0.0] - 2026-06-17
 
 ### Added

@@ -181,11 +181,17 @@ func verifyJobMetricsCollected(t *testing.T, jobsSizeSlice []JobMetricValue, job
 // TestPaginationHandling tests that batch pagination works correctly
 // With batch pagination (100 jobs per page), we test returning multiple jobs per page
 func TestPaginationHandling(t *testing.T) {
+	liveCalls := 0
 	callCount := 0
 	totalJobs := 3     // Total jobs to return across all pages
 	expectedCalls := 1 // With batch pagination, all 3 jobs fit in 1 page
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("filter") == liveJobsFilter {
+			liveCalls++
+			_, _ = w.Write([]byte(`{"data":[]}`))
+			return
+		}
 		callCount++
 
 		// Create a jobs response with multiple jobs (batch)
@@ -223,6 +229,9 @@ func TestPaginationHandling(t *testing.T) {
 	// With batch pagination, all jobs should be fetched in fewer API calls
 	if callCount != expectedCalls {
 		t.Errorf("Expected %d API call(s) for batch pagination, got %d", expectedCalls, callCount)
+	}
+	if liveCalls != 1 {
+		t.Errorf("Expected exactly 1 live (non-DONE) jobs query, got %d", liveCalls)
 	}
 
 	// Verify we collected metrics from all jobs in the batch
@@ -302,6 +311,7 @@ func loadStorageTestData(t *testing.T) *models.Storages {
 			UsedCapacityBytes          int64  `json:"usedCapacityBytes"`
 			MaxFragmentSizeMegabytes   int    `json:"maxFragmentSizeMegabytes"`
 			MaxConcurrentJobs          int    `json:"maxConcurrentJobs"`
+			MaxConcurrentDrives        int    `json:"maxConcurrentDrives"`
 			OnDemandOnly               bool   `json:"onDemandOnly"`
 			StorageCategory            string `json:"storageCategory,omitempty"`
 			ReplicationCapable         bool   `json:"replicationCapable,omitempty"`
@@ -429,7 +439,7 @@ func createTestConfig(serverURL, apiVersion string) models.Config {
 	cfg.NbuServer.APIKey = testutil.TestAPIKey
 	cfg.NbuServer.APIVersion = apiVersion
 	cfg.NbuServer.ContentType = testutil.ContentTypeJSON
-	cfg.NbuServer.InsecureSkipVerify = true
+	cfg.NbuServer.InsecureSkipVerify = models.NewEnvBool(true)
 
 	return cfg
 }

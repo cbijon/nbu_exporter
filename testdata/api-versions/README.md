@@ -1,505 +1,99 @@
-# NetBackup API Version Test Data
+# API Response Fixtures
 
-This directory contains mock response files for testing multi-version API support across NetBackup 10.0, 10.5, and 11.0.
+Hand-written NetBackup API responses that drive the exporter's collector and
+compatibility tests (`internal/exporter/*_test.go`). Each fixture holds only the fields
+a test needs, and the tests assert on their exact values.
 
-## File Overview
+These fixtures are **not** the source of truth for response shapes. That role belongs to
+`testdata/spec-samples/` (see [below](#spec-samples)).
 
-| File | API Version | NetBackup Version | Description |
-|------|-------------|-------------------|-------------|
-| `jobs-response-v3.json` | 3.0 | 10.0 - 10.4 | Jobs API response with core fields only |
-| `jobs-response-v12.json` | 12.0 | 10.5 | Jobs API response with enhanced fields |
-| `jobs-response-v13.json` | 13.0 | 11.0 | Jobs API response with latest fields |
-| `storage-response-v3.json` | 3.0 | 10.0 - 10.4 | Storage API response with basic attributes |
-| `storage-response-v12.json` | 12.0 | 10.5 | Storage API response with replication fields |
-| `storage-response-v13.json` | 13.0 | 11.0 | Storage API response with AI/immutability fields |
-| `error-406-response.json` | N/A | All | HTTP 406 error for unsupported API version |
+## Version mapping
 
-## Jobs API Response Compatibility
+| API version | NetBackup | Fixture suffix |
+|-------------|-----------|----------------|
+| 10.0 | 10.0 – 10.4 | `-v10` |
+| 12.0 | 10.5 | `-v12` |
+| 13.0 | 11.0 | `-v13` |
+| 14.0 | 11.1 / 11.2 | `-v14` |
 
-### Common Fields (All Versions: 3.0, 12.0, 13.0)
+## Fixtures
 
-These fields are present and consistent across all API versions:
+### Core: jobs and storage units (per API version)
 
-**Core Job Identification:**
-- `jobId` (integer) - Unique job identifier
-- `parentJobId` (integer) - Parent job ID for child jobs
-- `jobType` (string) - Type of job (BACKUP, RESTORE, etc.)
-- `jobSubType` (string) - Subtype of job (FULL, INCR, etc.)
-- `policyType` (string) - Policy type (VMWARE, STANDARD, etc.)
-- `policyName` (string) - Name of the policy
-- `clientName` (string) - Client hostname
-- `controlHost` (string) - Master server hostname
+| File | Endpoint | Pagination | Used by |
+|------|----------|------------|---------|
+| `jobs-response-v10.json` … `-v14.json` | `/admin/jobs` | cursor: `meta.pagination.next` (`page[after]`) | `api_compatibility_test.go` |
+| `storage-response-v10.json` … `-v14.json` | `/storage/storage-units` | offset: `meta.pagination.offset/last` | `api_compatibility_test.go` |
 
-**Job Status:**
-- `status` (integer) - Numeric status code (0=success, >0=error)
-- `state` (string) - Job state (DONE, ACTIVE, QUEUED, etc.)
-- `percentComplete` (integer) - Completion percentage (0-100)
+`api_compatibility_test.go` loads each version's pair and checks that the same models
+decode every version and that the same metric names come out. It also checks that the
+versioned `Accept` header (`application/vnd.netbackup+json;version=X.Y`) is sent.
 
-**Data Transfer:**
-- `kilobytesTransferred` (integer) - Total KB transferred
-- `kilobytesToTransfer` (integer) - Expected KB to transfer
-- `transferRate` (integer) - Transfer rate in KB/s
-- `numberOfFiles` (integer) - Number of files processed
-- `estimatedFiles` (integer) - Estimated number of files
+Newer fixtures add attributes on top of the older ones. Some of the attributes in the
+v13/v14 files (`aiDrivenOptimization`, `aiOptimizedStorage`, `sustainabilityScore`,
+`immutabilityEnabled`) don't appear in the Veritas specs. The models ignore unknown
+fields. Don't treat these files as a reference for which fields exist.
 
-**Storage Information:**
-- `destinationStorageUnitName` (string) - Target storage unit
-- `destinationMediaServerName` (string) - Target media server
-- `sourceStorageUnitName` (string) - Source storage unit (for restores)
-- `sourceMediaServerName` (string) - Source media server (for restores)
+### Tape collector (`collector_tape_test.go`)
 
-**Timing:**
-- `startTime` (string, ISO 8601) - Job start timestamp
-- `endTime` (string, ISO 8601) - Job end timestamp (or zero value if active)
-- `lastUpdateTime` (string, ISO 8601) - Last status update timestamp
-- `elapsedTime` (string, ISO 8601 duration) - Elapsed time (e.g., "PT1H30M")
+These four fixtures follow the spec shapes (attribute names, nesting and pagination
+style), so changes to the models are caught here as well as in `spec-samples/`.
 
-**Metadata:**
-- `jobOwner` (string) - User who initiated the job
-- `jobGroup` (string) - Job group name
-- `backupId` (string) - Backup identifier
-- `priority` (integer) - Job priority
-- `compression` (integer) - Compression level
-- `transportType` (string) - Transport type (LAN, SAN, etc.)
+| File | Endpoint | Pagination | Notes |
+|------|----------|------------|-------|
+| `drives-response.json` | `/storage/drives` | offset | `driveStatus`, `driveType`, `robotType`, `robotNumber`, `deviceHost`, `devicePaths[]` |
+| `tape-media-page1.json`, `tape-media-page2.json` | `/storage/tape-media` | cursor | page 1 has `next: "ABC002"`, page 2 ends the walk. Attributes: `barcode`, `mediaType`, `mediaStatus`, `robot`, `volumePool` |
+| `tape-volume-pools-response.json` | `/storage/tape-volume-pools` | cursor | `volumePoolName`, `poolType`, `partiallyFullMedia`, `description` |
+| `disk-pools-response.json` | `/storage/disk-pools` | offset | `name`, `sType`, `storageCategory`, `diskPoolState`, `diskVolumes[]` |
+| `robots-device-hosts-response.json` | `/storage/robots-device-hosts` | none | `id` / `type` only |
 
-### Version 12.0+ Additional Fields
+The tape tests also cover cursor-echo loop protection, offset pagination over several
+pages, partial results when a page fails, and de-duplication of drives and pools
+repeated across pages.
 
-These fields were introduced in API version 12.0 (NetBackup 10.5):
+### API 14.0 collectors
 
-**Enhanced Metadata:**
-- `activeProcessId` (integer) - Process ID of active job process
-- `scheduleType` (string) - Schedule type (FULL, INCR, etc.)
-- `scheduleName` (string) - Schedule name
-- `sourceMediaId` (string) - Source media identifier
-- `destinationMediaId` (string) - Destination media identifier
-- `dataMovement` (string) - Data movement type (STANDARD, etc.)
-- `streamNumber` (integer) - Stream number
-- `copyNumber` (integer) - Copy number
+| File | Endpoint | Used by |
+|------|----------|---------|
+| `alerts-response.json` | `/manage/alerts` | `collector_alerts_test.go` (`category`, `subCategory`, `severity`) |
+| `malware-response.json` | `/malware/latest-scan-results` | `collector_malware_test.go` (`scanState`, `numberOfFilesScanned`, `numberOfFilesImpacted`) |
+| `catalog-count-response.json` | `/catalog/images` | `collector_catalog_test.go` (reads only `meta.pagination.count`) |
+| `slo-response.json` | `/servicecatalog/slos` | `collector_slo_test.go` (`name`) |
 
-**Job Control:**
-- `restartable` (integer) - Whether job can be restarted (0/1)
-- `suspendable` (integer) - Whether job can be suspended (0/1)
-- `resumable` (integer) - Whether job can be resumed (0/1)
-- `cancellable` (integer) - Whether job can be cancelled (0/1)
-- `frozenImage` (integer) - Frozen image flag (0/1)
+These are loaded with `newMockClientFromFixture` (`collector_test_helpers_test.go`).
 
-**Advanced Features:**
-- `kilobytesDataTransferred` (integer) - Actual data KB transferred (post-dedup)
-- `dedupRatio` (float) - Deduplication ratio
-- `currentOperation` (integer) - Current operation code
-- `acceleratorOptimization` (integer) - Accelerator optimization flag
+### Other
 
-**Additional Metadata:**
-- `robotName` (string) - Robot name (for tape)
-- `vaultName` (string) - Vault name
-- `profileName` (string) - Profile name
-- `sessionId` (integer) - Session identifier
-- `numberOfTapeToEject` (integer) - Number of tapes to eject
-- `submissionType` (integer) - Submission type code
-- `dumpHost` (string) - Dump host
-- `instanceDatabaseName` (string) - Instance database name
-- `auditUserName` (string) - Audit user name
-- `auditDomainName` (string) - Audit domain name
-- `auditDomainType` (integer) - Audit domain type
-- `restoreBackupIDs` (string) - Restore backup IDs
-- `activeTryStartTime` (string, ISO 8601) - Active try start time
-- `initiatorId` (string) - Initiator identifier
-- `retentionLevel` (integer) - Retention level
-- `try` (integer) - Try number
-- `jobQueueReason` (integer) - Job queue reason code
-- `jobQueueResource` (string) - Job queue resource
-- `offHostType` (string) - Off-host type
+| File | Notes |
+|------|-------|
+| `error-406-response.json` | Example NetBackup error body for an unsupported API version. No test loads it at the moment. The 406 paths in the version detector tests build their responses inline. |
 
-**Links:**
-- `file-lists` - Link to file lists endpoint
-- `try-logs` - Link to try logs endpoint
+Single-version 10.5 fixtures used by the model tests live in `testdata/api-10.5/`.
 
-### Version 13.0+ Additional Fields
+## Spec samples
 
-These fields were introduced in API version 13.0 (NetBackup 11.0):
+`testdata/spec-samples/*.json` are generated by `scripts/gen_spec_samples.py` from the
+Veritas OpenAPI specs under `docs/veritas-*`. The script produces one fully populated,
+correctly typed GET-200 response per endpoint the exporter decodes. For each endpoint
+it uses the newest spec that defines it (11.2 = API 14.0, then 11.0 = 13.0, then
+10.5 = 12.0). `INDEX.json` records the endpoint, media type and spec file for each
+sample.
 
-**Cloud Integration:**
-- `cloudProvider` (string) - Cloud provider name (AWS, Azure, GCP, etc.)
-- `cloudRegion` (string) - Cloud region identifier
+`internal/models/spec_samples_test.go` decodes every sample with the real models. It
+checks two things:
 
-**Security & Compliance:**
-- `immutabilityEnabled` (boolean) - Whether immutability is enabled
+- a model field whose JSON type disagrees with the spec fails to decode (for example an int where the spec returns a string cursor);
+- the fields the collectors read must be non-empty after decoding, which catches a wrong JSON name or wrong nesting (those decode silently to zero values).
 
-**AI/ML Features:**
-- `aiDrivenOptimization` (boolean) - Whether AI-driven optimization is enabled
+Regenerate the samples after a spec update (requires PyYAML):
 
-## Storage API Response Compatibility
-
-### Common Fields (All Versions: 3.0, 12.0, 13.0)
-
-These fields are present and consistent across all API versions:
-
-**Storage Unit Identification:**
-- `name` (string) - Storage unit name
-- `storageType` (string) - Storage type (DISK, CLOUD, TAPE)
-- `storageSubType` (string) - Storage subtype (AdvancedDisk, CloudCatalyst, LTO, etc.)
-- `storageServerType` (string) - Storage server type (MEDIA_SERVER, etc.)
-
-**Capacity Information:**
-- `freeCapacityBytes` (integer) - Free capacity in bytes
-- `totalCapacityBytes` (integer) - Total capacity in bytes
-- `usedCapacityBytes` (integer) - Used capacity in bytes
-
-**Configuration:**
-- `useAnyAvailableMediaServer` (boolean) - Whether any media server can be used
-- `maxFragmentSizeMegabytes` (integer) - Maximum fragment size in MB
-- `maxConcurrentJobs` (integer) - Maximum concurrent jobs
-- `onDemandOnly` (boolean) - Whether storage is on-demand only
-
-### Version 12.0+ Additional Fields
-
-These fields were introduced in API version 12.0 (NetBackup 10.5):
-
-**Advanced Features:**
-- `accelerator` (boolean) - Whether accelerator is enabled
-- `instantAccessEnabled` (boolean) - Whether instant access is enabled
-- `isCloudSTU` (boolean) - Whether this is a cloud storage unit
-
-**Storage Classification:**
-- `storageCategory` (string) - Storage category (PRIMARY, CLOUD, etc.)
-
-**Replication:**
-- `replicationCapable` (boolean) - Whether replication is supported
-- `replicationSourceCapable` (boolean) - Whether can be replication source
-- `replicationTargetCapable` (boolean) - Whether can be replication target
-
-**Storage Characteristics:**
-- `snapshot` (boolean) - Whether snapshot is supported
-- `mirror` (boolean) - Whether mirroring is supported
-- `independent` (boolean) - Whether storage is independent
-- `primary` (boolean) - Whether this is primary storage
-- `scaleOutEnabled` (boolean) - Whether scale-out is enabled
-
-**Compliance:**
-- `wormCapable` (boolean) - Whether WORM (Write Once Read Many) is supported
-- `useWorm` (boolean) - Whether WORM is enabled
-
-**Relationships:**
-- `diskPool` - Relationship to disk pool resource
-
-### Version 13.0+ Additional Fields
-
-These fields were introduced in API version 13.0 (NetBackup 11.0):
-
-**Security & Compliance:**
-- `immutabilityEnabled` (boolean) - Whether immutability is enabled
-
-**AI/ML Features:**
-- `aiOptimizedStorage` (boolean) - Whether AI-optimized storage is enabled
-
-**Sustainability:**
-- `sustainabilityScore` (integer) - Sustainability score (0-100)
-
-## Response Structure Consistency
-
-All responses follow the JSON:API specification with consistent structure:
-
-```json
-{
-  "data": [...],           // Array of resource objects
-  "meta": {
-    "pagination": {...}    // Pagination metadata
-  },
-  "links": {               // Pagination links
-    "self": {...},
-    "first": {...},
-    "last": {...},
-    "next": {...}
-  }
-}
+```bash
+python3 scripts/gen_spec_samples.py
+go test ./internal/models -run TestSpecSample
 ```
 
-Each resource object contains:
-- `type` - Resource type identifier
-- `id` - Resource identifier
-- `links` - Resource-specific links
-- `attributes` - Resource attributes
-- `relationships` - Related resources (optional)
+## Adding a fixture
 
-## Testing Guidelines
-
-### Parsing Tests
-
-When testing parsers across versions:
-
-1. **Core Fields**: Verify all common fields are parsed correctly from all versions
-2. **Optional Fields**: Ensure optional fields (v12.0+, v13.0+) don't break parsing of older versions
-3. **Zero Values**: Confirm Go's zero-value semantics handle missing optional fields correctly
-4. **Type Safety**: Validate data types match across versions (integers, strings, booleans)
-
-### Compatibility Tests
-
-1. **Backward Compatibility**: v12.0 and v13.0 parsers should handle v3.0 responses
-2. **Forward Compatibility**: v3.0 parser should ignore unknown fields from newer versions
-3. **Field Presence**: Test with and without optional fields present
-4. **Null Handling**: Verify null values are handled correctly
-
-### Version Detection Tests
-
-Use `error-406-response.json` to test:
-1. Version fallback logic (13.0 → 12.0 → 3.0)
-2. Error message parsing
-3. Retry behavior on version mismatch
-4. Logging of version detection attempts
-
-## Data Accuracy
-
-All mock responses are based on actual NetBackup API documentation and real-world responses:
-
-- **v3.0 responses**: Based on NetBackup 10.0-10.4 API documentation
-- **v12.0 responses**: Based on NetBackup 10.5 API documentation
-- **v13.0 responses**: Based on NetBackup 11.0 API documentation and anticipated features
-
-Version-specific fields have been verified against:
-- Official Veritas NetBackup API documentation
-- OpenAPI specifications in `docs/veritas-10.5/` and `docs/veritas-11.0/`
-- Existing test data in `testdata/api-10.5/`
-
-## Usage in Tests
-
-```go
-// Example: Load version-specific test data
-func loadJobsResponse(version string) (*models.JobsResponse, error) {
-    filename := fmt.Sprintf("testdata/api-versions/jobs-response-v%s.json", version)
-    data, err := os.ReadFile(filename)
-    if err != nil {
-        return nil, err
-    }
-    
-    var response models.JobsResponse
-    err = json.Unmarshal(data, &response)
-    return &response, err
-}
-
-// Test parsing across all versions
-func TestJobsParsingAllVersions(t *testing.T) {
-    versions := []string{"3", "12", "13"}
-    for _, version := range versions {
-        t.Run(fmt.Sprintf("API_v%s", version), func(t *testing.T) {
-            response, err := loadJobsResponse(version)
-            require.NoError(t, err)
-            require.NotEmpty(t, response.Data)
-            
-            // Verify common fields
-            job := response.Data[0]
-            assert.NotZero(t, job.Attributes.JobID)
-            assert.NotEmpty(t, job.Attributes.JobType)
-            assert.NotEmpty(t, job.Attributes.ClientName)
-        })
-    }
-}
-```
-
-## Response Compatibility Verification
-
-### Jobs API Compatibility Matrix
-
-| Field Name | Type | v3.0 | v12.0 | v13.0 | Notes |
-|------------|------|------|-------|-------|-------|
-| **Core Fields (Required in all versions)** |
-| `jobId` | integer | ✓ | ✓ | ✓ | Primary identifier |
-| `parentJobId` | integer | ✓ | ✓ | ✓ | Parent job reference |
-| `jobType` | string | ✓ | ✓ | ✓ | BACKUP, RESTORE, etc. |
-| `jobSubType` | string | ✓ | ✓ | ✓ | FULL, INCR, etc. |
-| `policyType` | string | ✓ | ✓ | ✓ | VMWARE, STANDARD, etc. |
-| `policyName` | string | ✓ | ✓ | ✓ | Policy identifier |
-| `clientName` | string | ✓ | ✓ | ✓ | Client hostname |
-| `controlHost` | string | ✓ | ✓ | ✓ | Master server |
-| `status` | integer | ✓ | ✓ | ✓ | Status code (0=success) |
-| `state` | string | ✓ | ✓ | ✓ | DONE, ACTIVE, QUEUED |
-| `kilobytesTransferred` | integer | ✓ | ✓ | ✓ | Total KB transferred |
-| `kilobytesToTransfer` | integer | ✓ | ✓ | ✓ | Expected KB |
-| `transferRate` | integer | ✓ | ✓ | ✓ | KB/s |
-| `numberOfFiles` | integer | ✓ | ✓ | ✓ | Files processed |
-| `estimatedFiles` | integer | ✓ | ✓ | ✓ | Expected files |
-| `startTime` | ISO 8601 | ✓ | ✓ | ✓ | Job start timestamp |
-| `endTime` | ISO 8601 | ✓ | ✓ | ✓ | Job end timestamp |
-| `lastUpdateTime` | ISO 8601 | ✓ | ✓ | ✓ | Last update |
-| `elapsedTime` | ISO 8601 duration | ✓ | ✓ | ✓ | PT1H30M format |
-| `jobOwner` | string | ✓ | ✓ | ✓ | User who initiated |
-| `jobGroup` | string | ✓ | ✓ | ✓ | Job group |
-| `backupId` | string | ✓ | ✓ | ✓ | Backup identifier |
-| `priority` | integer | ✓ | ✓ | ✓ | Job priority |
-| `compression` | integer | ✓ | ✓ | ✓ | Compression level |
-| `transportType` | string | ✓ | ✓ | ✓ | LAN, SAN, etc. |
-| `percentComplete` | integer | ✓ | ✓ | ✓ | 0-100 |
-| `destinationStorageUnitName` | string | ✓ | ✓ | ✓ | Target storage |
-| `destinationMediaServerName` | string | ✓ | ✓ | ✓ | Target media server |
-| **Optional Fields (v3.0)** |
-| `scheduleType` | string | ✓ | ✓ | ✓ | May be empty in v3.0 |
-| `scheduleName` | string | ✓ | ✓ | ✓ | May be empty in v3.0 |
-| `sourceStorageUnitName` | string | ✓ | ✓ | ✓ | For restores |
-| `sourceMediaServerName` | string | ✓ | ✓ | ✓ | For restores |
-| **Enhanced Fields (v12.0+)** |
-| `activeProcessId` | integer | - | ✓ | ✓ | Process ID |
-| `sourceMediaId` | string | - | ✓ | ✓ | Source media |
-| `destinationMediaId` | string | - | ✓ | ✓ | Destination media |
-| `dataMovement` | string | - | ✓ | ✓ | STANDARD, etc. |
-| `streamNumber` | integer | - | ✓ | ✓ | Stream number |
-| `copyNumber` | integer | - | ✓ | ✓ | Copy number |
-| `restartable` | integer | - | ✓ | ✓ | 0/1 flag |
-| `suspendable` | integer | - | ✓ | ✓ | 0/1 flag |
-| `resumable` | integer | - | ✓ | ✓ | 0/1 flag |
-| `cancellable` | integer | - | ✓ | ✓ | 0/1 flag |
-| `frozenImage` | integer | - | ✓ | ✓ | 0/1 flag |
-| `kilobytesDataTransferred` | integer | - | ✓ | ✓ | Post-dedup KB |
-| `dedupRatio` | float | - | ✓ | ✓ | Dedup ratio |
-| `currentOperation` | integer | - | ✓ | ✓ | Operation code |
-| `acceleratorOptimization` | integer | - | ✓ | ✓ | 0/1 flag |
-| `robotName` | string | - | ✓ | ✓ | For tape |
-| `vaultName` | string | - | ✓ | ✓ | Vault name |
-| `profileName` | string | - | ✓ | ✓ | Profile name |
-| `sessionId` | integer | - | ✓ | ✓ | Session ID |
-| `numberOfTapeToEject` | integer | - | ✓ | ✓ | Tape count |
-| `submissionType` | integer | - | ✓ | ✓ | Submission type |
-| `dumpHost` | string | - | ✓ | ✓ | Dump host |
-| `instanceDatabaseName` | string | - | ✓ | ✓ | Instance DB |
-| `auditUserName` | string | - | ✓ | ✓ | Audit user |
-| `auditDomainName` | string | - | ✓ | ✓ | Audit domain |
-| `auditDomainType` | integer | - | ✓ | ✓ | Domain type |
-| `restoreBackupIDs` | string | - | ✓ | ✓ | Restore IDs |
-| `activeTryStartTime` | ISO 8601 | - | ✓ | ✓ | Try start time |
-| `initiatorId` | string | - | ✓ | ✓ | Initiator |
-| `retentionLevel` | integer | - | ✓ | ✓ | Retention level |
-| `try` | integer | - | ✓ | ✓ | Try number |
-| `jobQueueReason` | integer | - | ✓ | ✓ | Queue reason |
-| `jobQueueResource` | string | - | ✓ | ✓ | Queue resource |
-| `offHostType` | string | - | ✓ | ✓ | Off-host type |
-| **Links (v12.0+)** |
-| `file-lists` | link | - | ✓ | ✓ | File lists endpoint |
-| `try-logs` | link | - | ✓ | ✓ | Try logs endpoint |
-| **Cloud & AI Fields (v13.0+)** |
-| `cloudProvider` | string | - | - | ✓ | AWS, Azure, GCP |
-| `cloudRegion` | string | - | - | ✓ | Cloud region |
-| `immutabilityEnabled` | boolean | - | - | ✓ | Immutability flag |
-| `aiDrivenOptimization` | boolean | - | - | ✓ | AI optimization |
-
-### Storage API Compatibility Matrix
-
-| Field Name | Type | v3.0 | v12.0 | v13.0 | Notes |
-|------------|------|------|-------|-------|-------|
-| **Core Fields (Required in all versions)** |
-| `name` | string | ✓ | ✓ | ✓ | Storage unit name |
-| `storageType` | string | ✓ | ✓ | ✓ | DISK, CLOUD, TAPE |
-| `storageSubType` | string | ✓ | ✓ | ✓ | AdvancedDisk, etc. |
-| `storageServerType` | string | ✓ | ✓ | ✓ | MEDIA_SERVER |
-| `useAnyAvailableMediaServer` | boolean | ✓ | ✓ | ✓ | Media server config |
-| `freeCapacityBytes` | integer | ✓ | ✓ | ✓ | Free capacity |
-| `totalCapacityBytes` | integer | ✓ | ✓ | ✓ | Total capacity |
-| `usedCapacityBytes` | integer | ✓ | ✓ | ✓ | Used capacity |
-| `maxFragmentSizeMegabytes` | integer | ✓ | ✓ | ✓ | Max fragment size |
-| `maxConcurrentJobs` | integer | ✓ | ✓ | ✓ | Max concurrent jobs |
-| `onDemandOnly` | boolean | ✓ | ✓ | ✓ | On-demand flag |
-| **Enhanced Fields (v12.0+)** |
-| `accelerator` | boolean | - | ✓ | ✓ | Accelerator enabled |
-| `instantAccessEnabled` | boolean | - | ✓ | ✓ | Instant access |
-| `isCloudSTU` | boolean | - | ✓ | ✓ | Cloud storage unit |
-| `storageCategory` | string | - | ✓ | ✓ | PRIMARY, CLOUD |
-| `replicationCapable` | boolean | - | ✓ | ✓ | Replication support |
-| `replicationSourceCapable` | boolean | - | ✓ | ✓ | Can be source |
-| `replicationTargetCapable` | boolean | - | ✓ | ✓ | Can be target |
-| `snapshot` | boolean | - | ✓ | ✓ | Snapshot support |
-| `mirror` | boolean | - | ✓ | ✓ | Mirror support |
-| `independent` | boolean | - | ✓ | ✓ | Independent storage |
-| `primary` | boolean | - | ✓ | ✓ | Primary storage |
-| `scaleOutEnabled` | boolean | - | ✓ | ✓ | Scale-out enabled |
-| `wormCapable` | boolean | - | ✓ | ✓ | WORM capable |
-| `useWorm` | boolean | - | ✓ | ✓ | WORM enabled |
-| **Relationships (v12.0+)** |
-| `diskPool` | relationship | - | ✓ | ✓ | Disk pool reference |
-| **AI & Sustainability Fields (v13.0+)** |
-| `immutabilityEnabled` | boolean | - | - | ✓ | Immutability flag |
-| `aiOptimizedStorage` | boolean | - | - | ✓ | AI optimization |
-| `sustainabilityScore` | integer | - | - | ✓ | 0-100 score |
-
-### Go Model Compatibility
-
-The existing Go models in `internal/models/` are compatible with all API versions:
-
-**Jobs Model (`internal/models/Jobs.go`):**
-- ✓ All v3.0 core fields are present
-- ✓ All v12.0+ enhanced fields are present
-- ⚠️ Missing v13.0 fields: `cloudProvider`, `cloudRegion`, `immutabilityEnabled`, `aiDrivenOptimization`
-- ✓ Uses `omitempty` for optional fields where appropriate
-- ✓ Zero-value semantics handle missing fields correctly
-
-**Storage Models (`internal/models/Storage.go`, `internal/models/Storages.go`):**
-- ✓ All v3.0 core fields are present
-- ✓ All v12.0+ enhanced fields are present in `Storages.go`
-- ⚠️ Missing v13.0 fields: `immutabilityEnabled`, `aiOptimizedStorage`, `sustainabilityScore`
-- ✓ Uses `omitempty` for optional fields
-- ✓ Zero-value semantics handle missing fields correctly
-
-### Parsing Compatibility Verification
-
-**Backward Compatibility (Newer parsers with older responses):**
-- ✓ v12.0 parser can parse v3.0 responses (optional fields use zero values)
-- ✓ v13.0 parser can parse v3.0 responses (optional fields use zero values)
-- ✓ v13.0 parser can parse v12.0 responses (v13.0-specific fields use zero values)
-
-**Forward Compatibility (Older parsers with newer responses):**
-- ✓ v3.0 parser ignores unknown fields from v12.0 responses (Go JSON unmarshaling behavior)
-- ✓ v3.0 parser ignores unknown fields from v13.0 responses
-- ✓ v12.0 parser ignores unknown fields from v13.0 responses
-
-**Field Type Consistency:**
-- ✓ All common fields use consistent types across versions
-- ✓ Integer fields remain integers (no string-to-int conversions needed)
-- ✓ Boolean fields remain booleans
-- ✓ Timestamp fields use ISO 8601 format consistently
-
-### Known Limitations
-
-1. **Jobs Model Missing v13.0 Fields:**
-   - `cloudProvider` (string)
-   - `cloudRegion` (string)
-   - `immutabilityEnabled` (boolean)
-   - `aiDrivenOptimization` (boolean)
-   
-   **Impact:** These fields will not be parsed from v13.0 responses. This is acceptable for the current implementation as these are new optional fields not used in metrics collection.
-
-2. **Storage Model Missing v13.0 Fields:**
-   - `immutabilityEnabled` (boolean)
-   - `aiOptimizedStorage` (boolean)
-   - `sustainabilityScore` (integer)
-   
-   **Impact:** These fields will not be parsed from v13.0 responses. This is acceptable for the current implementation as these are new optional fields not used in capacity metrics.
-
-3. **Relationships in v3.0:**
-   - v3.0 responses do not include `relationships` section
-   - v12.0+ parsers handle this correctly (zero values for missing relationships)
-
-### Recommendations
-
-1. **For Current Implementation:**
-   - ✓ Mock responses accurately represent actual API responses
-   - ✓ All common fields are present and correctly typed
-   - ✓ Version-specific fields are properly documented
-   - ✓ Go models handle all versions correctly with zero-value semantics
-
-2. **For Future Enhancement:**
-   - Consider adding v13.0-specific fields to Go models if needed for metrics
-   - Add integration tests to verify parsing with real NetBackup 11.0 API
-   - Monitor for additional fields in future NetBackup releases
-
-3. **Testing Strategy:**
-   - Use table-driven tests with all three mock response versions
-   - Verify common fields parse correctly from all versions
-   - Verify optional fields use zero values when missing
-   - Verify unknown fields are ignored without errors
-
-## Maintenance
-
-When NetBackup releases new API versions:
-
-1. Add new mock response files following the naming convention
-2. Update this README with new version-specific fields
-3. Update the compatibility matrix above
-4. Add new test cases for the new version
-5. Update the version detector to try the new version first
-6. Evaluate if new fields should be added to Go models
+1. Start from the matching spec sample (or a live payload captured with `--trace`, with hostnames and client names scrubbed). Keep the spec's attribute names, nesting and pagination style.
+2. Remove fields the test doesn't need.
+3. When NetBackup adds an API version, add `jobs-response-vNN.json` / `storage-response-vNN.json`, extend the tables in `api_compatibility_test.go`, add the endpoints to `scripts/gen_spec_samples.py` if needed, and update the mapping table above.

@@ -1,0 +1,82 @@
+# promtool test rules deploy/prometheus/nbu.rules_test.yml
+rule_files:
+  - nbu.rules.yml
+tests:
+  # Two masters: paris fails every backup (no status="0" series at all), lyon is
+  # healthy. The alert must fire for paris only — a global ratio would read 50%
+  # yet the old expression was empty for an all-failed site and never fired.
+  - interval: 1m
+    input_series:
+      - series: 'nbu_status_count{site="paris",action="BACKUP",status="96"}'
+        values: '4x30'
+      - series: 'nbu_status_count{site="lyon",action="BACKUP",status="0"}'
+        values: '20x30'
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: NbuBackupSuccessRateLow
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              site: paris
+            exp_annotations:
+              summary: "Backup success rate below 90% on site paris"
+              description: "BACKUP success rate on site paris is 0.0% over the current window."
+
+  # A partially failing site among healthy ones is still caught per site.
+  - interval: 1m
+    input_series:
+      - series: 'nbu_status_count{site="paris",action="BACKUP",status="0"}'
+        values: '8x30'
+      - series: 'nbu_status_count{site="paris",action="BACKUP",status="1"}'
+        values: '2x30'
+      - series: 'nbu_status_count{site="lyon",action="BACKUP",status="0"}'
+        values: '200x30'
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: NbuBackupSuccessRateLow
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              site: paris
+            exp_annotations:
+              summary: "Backup success rate below 90% on site paris"
+              description: "BACKUP success rate on site paris is 80.0% over the current window."
+
+  # Same storage-unit name on two masters: evaluated per site, not merged.
+  - interval: 1m
+    input_series:
+      - series: 'nbu_disk_bytes{site="paris",name="msdp-stu",type="MSDP",size="used"}'
+        values: '95x20'
+      - series: 'nbu_disk_bytes{site="paris",name="msdp-stu",type="MSDP",size="free"}'
+        values: '5x20'
+      - series: 'nbu_disk_bytes{site="lyon",name="msdp-stu",type="MSDP",size="used"}'
+        values: '10x20'
+      - series: 'nbu_disk_bytes{site="lyon",name="msdp-stu",type="MSDP",size="free"}'
+        values: '90x20'
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: NbuStorageAlmostFull
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              site: paris
+              name: msdp-stu
+            exp_annotations:
+              summary: "Storage unit msdp-stu over 90% used on site paris"
+              description: "msdp-stu is 95.0% full."
+
+  # Queued jobs are reported per site.
+  - interval: 1m
+    input_series:
+      - series: 'nbu_jobs_queued_count{site="lyon",action="DUPLICATION",reason="5"}'
+        values: '3x40'
+    alert_rule_test:
+      - eval_time: 35m
+        alertname: NbuJobsQueuedSustained
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              site: lyon
+            exp_annotations:
+              summary: "NetBackup jobs queued for >30m on site lyon"
+              description: "3 job(s) remain queued on site lyon; check media/storage availability (nbu_jobs_queued_count by reason)."

@@ -27,7 +27,7 @@ nbuservers:
 #   samplingRate: 0.1
 
 # Optional: opt-in metric collectors (all default to disabled).
-# alerts/malware/catalog/slo require NetBackup 11.2 (API version 14.0).
+# alerts/malware/catalog/slo require NetBackup 11.1+ (API version 14.0).
 collectors:
   alerts:  { enabled: false }
   malware: { enabled: false }

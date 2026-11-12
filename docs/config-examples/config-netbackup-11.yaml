@@ -1,44 +1,33 @@
 ---
-# Configuration Example: NetBackup 11.0 with Explicit API Version 13.0
+# Configuration Example: NetBackup 11.x (API 13.0 on 11.0, API 14.0 on 11.1 / 11.2)
 #
-# Use this configuration when:
-# - Running NetBackup 11.0
-# - You want to explicitly specify API version 13.0
-# - You want to skip automatic version detection for faster startup
-#
-# NetBackup Version: 11.0
-# API Version: 13.0
-# Detection: Disabled (explicit version)
-#
-# For NetBackup 11.2, use apiVersion: "14.0" to enable additional collectors
-# (alerts, malware, catalog, slo).
+# Auto-detection selects 14.0 on 11.1/11.2 and 13.0 on 11.0, so no apiVersion is
+# needed. alerts/malware/catalog/slo need API 14.0: on 11.0 leave them disabled.
 
 server:
-    host: "localhost"
+    host: "0.0.0.0"
     port: "9440"
     uri: "/metrics"
-    scrapingInterval: "1h"   # Job lookback window per collection
-    collectionInterval: "5m" # How often the loop polls every site (default 5m)
-    logName: "log/nbu-exporter.log"
+    scrapingInterval: "1h"
+    collectionInterval: "5m"
+    logName: "stdout"
 
 nbuservers:
     - site: "primary"
       scheme: "https"
       uri: "/netbackup"
-      host: "nbu11-master.my.domain"
+      host: "${NBU1_HOSTNAME}"   # e.g. master.my.domain
       port: "1556"
-      apiVersion: "13.0"   # Explicit API version for NetBackup 11.0
-      apiKey: "your-api-key-here"
-      insecureSkipVerify: false
+      apiKey: "${NBU1_APIKEY}"
+      insecureSkipVerify: "${NBU1_SKIP_CERTIFICATE:-false}"
+      # apiVersion: "14.0"   # optional pin; omit to auto-detect (recommended)
 
-# Optional: opt-in metric collectors available from NetBackup 10.5+.
-# alerts/malware/catalog/slo require NetBackup 11.2 (API version 14.0).
 collectors:
+    alerts:  { enabled: true }    # API 14.0 (11.1+)
+    malware: { enabled: true }    # API 14.0
+    catalog: { enabled: true }    # API 14.0
+    slo:     { enabled: true }    # API 14.0
     tape:    { enabled: true }
     perClient:
         enabled: false
-        allowlist: []   # exact client names, e.g. ["db01", "app02"]
-
-# Notes:
-# - Replace host and apiKey placeholders with your real values.
-# - Keep insecureSkipVerify: false in production.
+        allowlist: []             # exact client names, e.g. ["db01", "app02"]; empty = no series

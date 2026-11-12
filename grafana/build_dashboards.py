@@ -9,7 +9,7 @@ import json
 import sys
 
 from grafana.gen import overview, jobs, storage, dataprotection, tape, lifecycle, multisite
-from grafana.gen.validate import check_dashboard, check_site_wiring
+from grafana.gen.validate import assign_ref_ids, check_dashboard, check_ref_ids, check_site_wiring
 
 OUTPUTS = [
     ("grafana/nbu-overview.json", overview.build),
@@ -25,10 +25,14 @@ OUTPUTS = [
 def main():
     failures = []
     for path, build in OUTPUTS:
-        dash = build()
+        dash = assign_ref_ids(build())
         unknown = check_dashboard(dash)
         if unknown:
             failures.append(f"{path}: unknown metrics {unknown}")
+            continue
+        dup = check_ref_ids(dash)
+        if dup:
+            failures.append(f"{path}: duplicate refIds in {dup}")
             continue
         site_problems = check_site_wiring(dash)
         if site_problems:

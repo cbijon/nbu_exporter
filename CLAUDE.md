@@ -4,12 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A Prometheus exporter for Veritas NetBackup (NBU), written in Go 1.26. Exposes backup job statistics and storage metrics via HTTP for Prometheus scraping, with optional OpenTelemetry distributed tracing.
+A Prometheus exporter for Veritas NetBackup (NBU), written in Go 1.27. Exposes backup job statistics and storage metrics via HTTP for Prometheus scraping, with optional OpenTelemetry distributed tracing.
 
 ## Prerequisites
 
-- Go 1.26+
-- `golangci-lint` v2.12.2, `govulncheck`, `cyclonedx-gomod` (install all via `make tools`)
+- Go 1.27+
+- `golangci-lint` v2.14.0, `govulncheck`, `cyclonedx-gomod` (install all via `make tools`)
 - Docker (optional, for container builds)
 
 ## Build & Development Commands
@@ -114,7 +114,7 @@ Requires `config.yaml` with sections: `server`, `nbuserver`, optional `opentelem
 - **Context propagation**: All API calls use context for cancellation/timeout
 - **Version detection**: Auto-detects highest supported NBU API version at startup
 - **Storage caching**: TTL cache (5min) avoids redundant API calls on frequent scrapes
-- **Config hot-reload**: SIGHUP signal + fsnotify file watcher trigger config reload without restart
+- **Config reload = validation only**: SIGHUP + fsnotify re-read and validate config.yaml (same `utils.ResolveSecrets` as startup), but the collection loop keeps its startup copy — sites, collectors and intervals change only on restart; a changed `nbuservers` list logs a RESTART warning.
 - **Thread-safe config**: Immutable config wrapper with atomic swap for concurrent access
 - **Span hierarchy**: `prometheus.scrape` → `netbackup.fetch_storage` / `netbackup.fetch_jobs` → `netbackup.fetch_job_page`
 
@@ -122,8 +122,8 @@ Requires `config.yaml` with sections: `server`, `nbuserver`, optional `opentelem
 
 - **`vendor/` is gitignored** (not committed). After changing dependencies, run `go mod vendor` or build with `-mod=mod`, otherwise builds may fail on missing vendored modules.
 - **`make ci` excludes `vendor/` from `fmt-check`** — needed because `vendor/` is present locally but absent in CI (gitignored). Don't simplify it back to a bare `gofmt -l .`.
-- **CI workflows**: `ci.yml` is the main gate (fmt/vet/lint/`test-race`/govulncheck + 70% coverage via `.testcoverage.yml` + Semgrep + SBOM); `codeql.yml` runs CodeQL; `release.yml` is GoReleaser; `static.yml` deploys docs.
-- **`go` directive is patch-pinned (`go 1.26.4`)** on purpose — CI installs the exact version via `go-version-file`, and `govulncheck` fails on the stdlib CVEs present in `1.26.0`. Don't loosen it to `go 1.26`.
+- **CI workflows**: `ci.yml` is the main gate (fmt/vet/lint/`test-race`/govulncheck + 70% coverage via `.testcoverage.yml` + Semgrep + SBOM); `security.yml` runs the reusable security gate (`fjacquet/ci` go-security: CodeQL/osv blocking, Semgrep advisory); `release.yml` is GoReleaser; `docs.yml` deploys the MkDocs site; `helm-charts.yml` releases the chart. CI also has an `alert-rules` job (promtool on `deploy/prometheus/*_test.yml`).
+- **`go` directive is patch-pinned (`go 1.27.4`)** on purpose — CI installs the exact version via `go-version-file`, and `govulncheck` fails on the stdlib CVEs present in `1.27.3`. Don't loosen it to `go 1.27`.
 - **Workflow actions are SHA-pinned** (40-char commit + version comment) and the Semgrep image is digest-pinned. Keep new `uses:` SHA-pinned — Semgrep/CodeRabbit flag floating tags.
 - **Release signing uses cosign's bundle format** (`--bundle` in `.goreleaser.yml signs`). cosign v4 ignores the old `--output-signature`/`--output-certificate` flags.
 - **Architecture decisions** live in `docs/adr/` (see ADR-0001 for the tooling-baseline rationale).
@@ -135,7 +135,7 @@ Requires `config.yaml` with sections: `server`, `nbuserver`, optional `opentelem
 - `github.com/spf13/cobra` - CLI framework
 - `github.com/sirupsen/logrus` - Logging
 - `github.com/patrickmn/go-cache` - TTL cache for storage metrics
-- `github.com/fsnotify/fsnotify` - File watcher for config hot-reload
+- `github.com/fsnotify/fsnotify` - File watcher for config change validation (reload = validate; restart applies)
 - `github.com/stretchr/testify` - Test assertions and mocks
 - `golang.org/x/sync` - Concurrency primitives (errgroup)
 - `go.opentelemetry.io/otel` - OpenTelemetry tracing

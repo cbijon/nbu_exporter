@@ -65,7 +65,7 @@ func newNbuServerConfig(site, serverURL, apiVersion string) models.NbuServerConf
 		APIKey:             testAPIKey,
 		APIVersion:         apiVersion,
 		ContentType:        contentTypeJSON,
-		InsecureSkipVerify: true,
+		InsecureSkipVerify: models.NewEnvBool(true),
 	}
 }
 
@@ -165,5 +165,61 @@ func TestTargetCollector_BuffersSubMetrics(t *testing.T) {
 	}
 	if got := labelValue(&d, "site"); got != "paris" {
 		t.Errorf("buffered sub-metric site label = %q, want paris", got)
+	}
+}
+
+// A master that hangs must neither blank nor delay the healthy sites: the healthy
+// site is published as soon as it is collected, and the hung one is bounded by the
+// loop interval and then reported down.
+func TestCollectionLoop_HungSiteDoesNotBlockOthers(t *testing.T) {
+	healthy := httptest.NewServer(http.HandlerFunc(nbuOKHandler))
+	defer healthy.Close()
+	hung := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-r.Context().Done() // never answers; released when the client gives up
+	}))
+	defer hung.Close()
+
+	base := createTestConfig(healthy.URL, "14.0")
+	tcA := NewTargetCollector(base, newNbuServerConfig("a", healthy.URL, "14.0"))
+	tcB := NewTargetCollector(base, newNbuServerConfig("b", hung.URL, "")) // detection hangs
+	defer func() { _ = tcA.close(); _ = tcB.close() }()
+
+	store := &SnapshotStore{}
+	const interval = 3 * time.Second
+	loop := NewCollectionLoop([]*TargetCollector{tcA, tcB}, store, interval)
+
+	done := make(chan struct{})
+	start := time.Now()
+	go func() { loop.collectOnce(context.Background()); close(done) }()
+
+	deadline := time.After(interval - 500*time.Millisecond)
+	for {
+		if snap := store.Load(); snap != nil && snap.Sites["a"] != nil {
+			if !snap.Sites["a"].Up {
+				t.Fatalf("site a published but down: %v", snap.Sites["a"].StorageErr)
+			}
+			break
+		}
+		select {
+		case <-deadline:
+			t.Fatal("healthy site not published while the other site hangs")
+		case <-time.After(20 * time.Millisecond):
+		}
+	}
+
+	select {
+	case <-done:
+	case <-time.After(interval + 10*time.Second):
+		t.Fatal("collectOnce did not return after the per-site deadline")
+	}
+	if elapsed := time.Since(start); elapsed > interval+5*time.Second {
+		t.Errorf("hung site not bounded by the interval: cycle took %v", elapsed)
+	}
+	b := store.Load().Sites["b"]
+	if b == nil || b.Up {
+		t.Fatalf("hung site must be reported down, got %+v", b)
+	}
+	if store.Load().Sites["a"] == nil {
+		t.Fatal("healthy site lost from the final snapshot")
 	}
 }

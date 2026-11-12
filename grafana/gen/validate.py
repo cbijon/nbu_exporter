@@ -116,3 +116,30 @@ def check_site_wiring(dash):
                 problems.append(f"expr not filtered by site: {expr[:70]}")
 
     return sorted(set(problems))
+
+
+def _iter_panels(panels):
+    for p in panels:
+        yield p
+        yield from _iter_panels(p.get("panels", []))
+
+
+def assign_ref_ids(dash):
+    """Give every target of a panel a distinct refId (A, B, C, ...).
+
+    Panel builders emit refId "A" for each target; Grafana rejects a panel whose
+    targets share a refId (the panel errors or silently drops queries)."""
+    for panel in _iter_panels(dash.get("panels", [])):
+        for i, tgt in enumerate(panel.get("targets", [])):
+            tgt["refId"] = chr(ord("A") + i)
+    return dash
+
+
+def check_ref_ids(dash):
+    """Return titles of panels whose targets share a refId."""
+    bad = []
+    for panel in _iter_panels(dash.get("panels", [])):
+        ids = [t.get("refId") for t in panel.get("targets", [])]
+        if len(ids) != len(set(ids)):
+            bad.append(panel.get("title"))
+    return bad

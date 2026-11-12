@@ -1,6 +1,6 @@
 # Dockerfile for GoReleaser
 # Expects the binary to be pre-built by GoReleaser.
-FROM alpine:latest
+FROM docker.io/library/alpine:latest
 
 # ca-certificates for HTTPS, plus a non-root user and writable log dir
 RUN apk --no-cache add ca-certificates && \
@@ -13,6 +13,9 @@ COPY nbu_exporter /usr/bin/nbu_exporter
 COPY config.yaml /etc/nbu_exporter/config.yaml
 
 EXPOSE 9440
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget --quiet --tries=1 --spider http://127.0.0.1:9440/livez || exit 1
 
 USER nbu
 

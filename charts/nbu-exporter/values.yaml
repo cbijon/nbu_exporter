@@ -49,11 +49,11 @@ resources: {}
 
 livenessProbe:
   httpGet:
-    path: /health
+    path: /livez
     port: http
 readinessProbe:
   httpGet:
-    path: /health
+    path: /readyz
     port: http
 
 volumes: []
@@ -78,17 +78,17 @@ config: |
     uri: "/metrics"
     scrapingInterval: "1h"
     logName: "stdout"
-  nbuserver:
-    scheme: "https"
-    uri: "/netbackup"
-    domain: "my.domain"
-    domainType: "NT"
-    host: "master.my.domain"
-    port: "1556"
-    apiVersion: "13.0"
-    apiKey: "REPLACE_WITH_API_KEY"
-    contentType: "application/vnd.netbackup+json; version=13.0"
-    insecureSkipVerify: false
+  # One entry per NetBackup primary server; `site` labels every metric.
+  # apiVersion is omitted on purpose: each site auto-detects 14.0 -> 13.0 -> 12.0 -> 10.0
+  # (NetBackup 11.1/11.2 -> 14.0). Prefer existingSecret for real API keys.
+  nbuservers:
+    - site: "primary"
+      scheme: "https"
+      uri: "/netbackup"
+      host: "master.my.domain"
+      port: "1556"
+      apiKey: "REPLACE_WITH_API_KEY"
+      insecureSkipVerify: false
   opentelemetry:
     enabled: false
     endpoint: "localhost:4317"
@@ -99,7 +99,7 @@ config: |
     malware: { enabled: false }
     catalog: { enabled: false }
     slo:     { enabled: false }
-    tape:    { enabled: false }   # tape/disk-pool metrics (NBU 10.0+; pools need 10.5+)
+    tape:    { enabled: false }   # tape drives/media/pools + disk-pool volumes (all endpoints on NBU 11.x)
     perClient:                    # per-client compliance + lifecycle (allowlist required)
       enabled: false
       allowlist: []               # exact client names; empty => no per-client series

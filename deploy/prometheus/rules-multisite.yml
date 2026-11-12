@@ -20,7 +20,12 @@ groups:
       - alert: NbuInterSiteDivergence
         expr: |
           (
-            sum by (site) (nbu_jobs_bytes{action="BACKUP"})
+            (
+              sum by (site) (nbu_jobs_bytes{action="BACKUP"})
+              # A reachable site with no BACKUP job at all in the window has no
+              # nbu_jobs_bytes series; count it as 0 so the outage is not invisible.
+              or sum by (site) (0 * (nbu_up == 1))
+            )
             / on() group_left()
             avg(sum by (site) (nbu_jobs_bytes{action="BACKUP"}))
           ) < 0.3

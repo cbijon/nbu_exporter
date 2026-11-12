@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   # NBU Exporter with OpenTelemetry enabled
   nbu_exporter: # nosemgrep
@@ -12,7 +10,14 @@ services:
       - "9440:9440"
     volumes:
       - ./config.yaml:/etc/nbu_exporter/config.yaml:ro
-      - ./log:/var/log/nbu_exporter
+    environment:
+      # .env is not mounted: forward every variable config.yaml references.
+      - NBU1_HOSTNAME=${NBU1_HOSTNAME:-master.my.domain}
+      - NBU1_APIKEY=${NBU1_APIKEY:-}
+      - NBU1_SKIP_CERTIFICATE=${NBU1_SKIP_CERTIFICATE:-false}
+      - NBU2_HOSTNAME=${NBU2_HOSTNAME:-}
+      - NBU2_APIKEY=${NBU2_APIKEY:-}
+      - NBU2_SKIP_CERTIFICATE=${NBU2_SKIP_CERTIFICATE:-false}
     restart: unless-stopped
     depends_on:
       otel-collector:
@@ -20,7 +25,7 @@ services:
     networks:
       - monitoring
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9440/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:9440/livez"]
       interval: 30s
       timeout: 10s
       retries: 3

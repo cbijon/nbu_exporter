@@ -125,12 +125,21 @@ func (tc *TargetCollector) collect(ctx context.Context) *SiteSnapshot {
 	var agg *JobAggregator
 	var sErr, jErr error
 	g, gctx := errgroup.WithContext(ctx)
-	g.Go(func() error { sm, su, sErr = FetchStorageFull(gctx, client); return nil })
+	var storageRTT time.Duration
+	g.Go(func() error {
+		start := time.Now()
+		sm, su, sErr = FetchStorageFull(gctx, client)
+		storageRTT = time.Since(start)
+		return nil
+	})
 	g.Go(func() error { agg, jErr = FetchAllJobsFull(gctx, client, tc.jobWindow()); return nil })
 	_ = g.Wait()
 
 	now := time.Now()
 	ss.StorageMetrics, ss.StorageUnits, ss.JobAgg = sm, su, agg
+	if sErr == nil {
+		ss.ResponseTime = storageRTT
+	}
 	ss.StorageErr, ss.JobsErr = sErr, jErr
 	if sErr == nil {
 		ss.LastStorageScrape = now
@@ -163,7 +172,15 @@ func NewCollectionLoop(targets []*TargetCollector, store *SnapshotStore, interva
 }
 
 func (l *CollectionLoop) collectOnce(ctx context.Context) {
+	// Start from the previous snapshot so a site still collecting keeps serving its
+	// last results, and publish as soon as each site finishes: a slow or
+	// unreachable master must never hold back (or blank) the healthy ones.
 	sites := make(map[string]*SiteSnapshot, len(l.targets))
+	if prev := l.store.Load(); prev != nil {
+		for name, ss := range prev.Sites {
+			sites[name] = ss
+		}
+	}
 	var mu sync.Mutex
 	g, gctx := errgroup.WithContext(ctx)
 	limit := runtime.NumCPU()
@@ -176,15 +193,32 @@ func (l *CollectionLoop) collectOnce(ctx context.Context) {
 	for _, tc := range l.targets {
 		tc := tc
 		g.Go(func() error {
-			ss := tc.collect(gctx)
+			// Bound each site to one interval so a hung master cannot delay the
+			// next cycle of the others; it is then reported down (nbu_up=0).
+			sctx, cancel := l.siteContext(gctx)
+			defer cancel()
+			ss := tc.collect(sctx)
 			mu.Lock()
 			sites[tc.site] = ss
+			snap := make(map[string]*SiteSnapshot, len(sites))
+			for name, s := range sites {
+				snap[name] = s
+			}
+			l.store.Store(&Snapshot{Sites: snap})
 			mu.Unlock()
 			return nil
 		})
 	}
 	_ = g.Wait()
-	l.store.Store(&Snapshot{Sites: sites})
+}
+
+// siteContext bounds one site's collection to the loop interval (no bound when
+// the interval is unset, e.g. in tests driving collectOnce directly).
+func (l *CollectionLoop) siteContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	if l.interval <= 0 {
+		return context.WithCancel(ctx)
+	}
+	return context.WithTimeout(ctx, l.interval)
 }
 
 // Close releases every target's client connections. Call it only after Run has

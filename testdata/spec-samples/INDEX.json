@@ -1,0 +1,57 @@
+{
+ "alerts": {
+  "endpoint": "/manage/alerts",
+  "mediaType": "application/vnd.netbackup+json;version=14.0",
+  "spec": "veritas-11.2/manage.yaml"
+ },
+ "catalog-images": {
+  "endpoint": "/catalog/images",
+  "mediaType": "application/vnd.netbackup+json;version=14.0",
+  "spec": "veritas-11.2/catalog.yaml"
+ },
+ "disk-pools": {
+  "endpoint": "/storage/disk-pools",
+  "mediaType": "application/vnd.netbackup+json;version=13.0",
+  "spec": "veritas-11.0/storage.yaml"
+ },
+ "drives": {
+  "endpoint": "/storage/drives",
+  "mediaType": "application/vnd.netbackup+json;version=13.0",
+  "spec": "veritas-11.0/storage.yaml"
+ },
+ "jobs": {
+  "endpoint": "/admin/jobs",
+  "mediaType": "application/vnd.netbackup+json;version=14.0",
+  "spec": "veritas-11.2/admin.yaml"
+ },
+ "malware-scans": {
+  "endpoint": "/malware/latest-scan-results",
+  "mediaType": "application/vnd.netbackup+json;version=14.0",
+  "spec": "veritas-11.2/malware.yaml"
+ },
+ "robots-device-hosts": {
+  "endpoint": "/storage/robots-device-hosts",
+  "mediaType": "application/vnd.netbackup+json;version=13.0",
+  "spec": "veritas-11.0/storage.yaml"
+ },
+ "slos": {
+  "endpoint": "/servicecatalog/slos",
+  "mediaType": "application/vnd.netbackup+json;version=13.0",
+  "spec": "veritas-11.0/servicecatalog.yaml"
+ },
+ "storage-units": {
+  "endpoint": "/storage/storage-units",
+  "mediaType": "application/vnd.netbackup+json;version=13.0",
+  "spec": "veritas-11.0/storage.yaml"
+ },
+ "tape-media": {
+  "endpoint": "/storage/tape-media",
+  "mediaType": "application/vnd.netbackup+json;version=13.0",
+  "spec": "veritas-11.0/storage.yaml"
+ },
+ "tape-volume-pools": {
+  "endpoint": "/storage/tape-volume-pools",
+  "mediaType": "application/vnd.netbackup+json;version=13.0",
+  "spec": "veritas-11.0/storage.yaml"
+ }
+}

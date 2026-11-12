@@ -19,6 +19,9 @@ type SiteSnapshot struct {
 	JobAgg            *JobAggregator
 	LastStorageScrape time.Time
 	LastJobsScrape    time.Time
+	// ResponseTime is the wall-clock duration of the storage-units request (a single,
+	// small page) this cycle; exposed as nbu_response_time_ms. Zero when it failed.
+	ResponseTime time.Duration
 	// SubMetrics holds the already-built metrics emitted by enabled opt-in
 	// sub-collectors (alerts/malware/catalog/SLO) for this site. They are
 	// buffered at collection time and re-emitted verbatim on each scrape.

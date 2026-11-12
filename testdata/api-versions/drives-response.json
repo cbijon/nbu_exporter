@@ -1,7 +1,8 @@
 {
   "data": [
-    {"attributes": {"driveName": "drive0", "driveStatus": "DRIVE_STATUS_UP",   "driveType": "DT_HCART", "robotType": "TLD", "robotNumber": 0, "deviceHost": "ms1.example.com"}},
-    {"attributes": {"driveName": "drive1", "driveStatus": "DRIVE_STATUS_UP",   "driveType": "DT_HCART", "robotType": "TLD", "robotNumber": 0, "deviceHost": "ms1.example.com"}},
-    {"attributes": {"driveName": "drive2", "driveStatus": "DRIVE_STATUS_DOWN", "driveType": "DT_HCART", "robotType": "TLD", "robotNumber": 0, "deviceHost": "ms1.example.com"}}
-  ]
+    {"type": "drive", "id": "IBM.ULT3580-HH9.000", "attributes": {"driveStatus": "DRIVE_STATUS_UP",   "driveType": "DT_HCART", "robotType": "TLD", "robotNumber": 0, "deviceHost": "ms1.example.com", "devicePaths": [{"deviceHost": "ms1.example.com", "driveName": "IBM.ULT3580-HH9.000", "devicePath": "/dev/nst0"}]}},
+    {"type": "drive", "id": "IBM.ULT3580-HH9.001", "attributes": {"driveStatus": "DRIVE_STATUS_UP",   "driveType": "DT_HCART", "robotType": "TLD", "robotNumber": 0, "deviceHost": "ms1.example.com", "devicePaths": [{"deviceHost": "ms1.example.com", "driveName": "IBM.ULT3580-HH9.001", "devicePath": "/dev/nst1"}]}},
+    {"type": "drive", "id": "IBM.ULT3580-HH9.002", "attributes": {"driveStatus": "DRIVE_STATUS_DOWN", "driveType": "DT_HCART", "robotType": "TLD", "robotNumber": 0, "devicePaths": [{"deviceHost": "ms2.example.com", "driveName": "IBM.ULT3580-HH9.002", "devicePath": "/dev/nst2"}]}}
+  ],
+  "meta": {"pagination": {"count": 3, "offset": 0, "limit": 100, "first": 0, "last": 0}}
 }

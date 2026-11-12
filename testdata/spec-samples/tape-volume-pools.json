@@ -1,0 +1,43 @@
+{
+ "data": [
+  {
+   "attributes": {
+    "description": "sample",
+    "partiallyFullMedia": 1,
+    "poolType": "REGULAR_MEDIA_POOL",
+    "volumePoolName": "sample"
+   },
+   "id": "sample",
+   "links": {
+    "self": {
+     "href": "sample"
+    }
+   },
+   "type": "volumePoolDetails"
+  }
+ ],
+ "links": {
+  "pagination": {
+   "first": {
+    "href": "sample"
+   },
+   "next": {
+    "href": "sample"
+   },
+   "prev": {
+    "href": "sample"
+   },
+   "self": {
+    "href": "sample"
+   }
+  }
+ },
+ "meta": {
+  "pagination": {
+   "limit": 1,
+   "next": "sample",
+   "prev": "sample",
+   "rangeTruncated": true
+  }
+ }
+}

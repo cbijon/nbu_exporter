@@ -494,7 +494,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(nbu_status_count{action=\"BACKUP\", status=\"0\", site=~\"$site\"}) / clamp_min(sum(nbu_status_count{action=\"BACKUP\", site=~\"$site\"}), 1) * 100",
+          "expr": "(sum(nbu_status_count{action=\"BACKUP\", status=\"0\", site=~\"$site\"}) or 0 * sum(nbu_status_count{action=\"BACKUP\", site=~\"$site\"})) / clamp_min(sum(nbu_status_count{action=\"BACKUP\", site=~\"$site\"}), 1) * 100",
           "instant": true,
           "refId": "A",
           "legendFormat": "BACKUP"
@@ -562,7 +562,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(nbu_status_count{action=\"DUPLICATION\", status=\"0\", site=~\"$site\"}) / clamp_min(sum(nbu_status_count{action=\"DUPLICATION\", site=~\"$site\"}), 1) * 100",
+          "expr": "(sum(nbu_status_count{action=\"DUPLICATION\", status=\"0\", site=~\"$site\"}) or 0 * sum(nbu_status_count{action=\"DUPLICATION\", site=~\"$site\"})) / clamp_min(sum(nbu_status_count{action=\"DUPLICATION\", site=~\"$site\"}), 1) * 100",
           "instant": true,
           "refId": "A",
           "legendFormat": "DUPLICATION"
@@ -630,7 +630,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(nbu_status_count{action=\"IMPORT\", status=\"0\", site=~\"$site\"}) / clamp_min(sum(nbu_status_count{action=\"IMPORT\", site=~\"$site\"}), 1) * 100",
+          "expr": "(sum(nbu_status_count{action=\"IMPORT\", status=\"0\", site=~\"$site\"}) or 0 * sum(nbu_status_count{action=\"IMPORT\", site=~\"$site\"})) / clamp_min(sum(nbu_status_count{action=\"IMPORT\", site=~\"$site\"}), 1) * 100",
           "instant": true,
           "refId": "A",
           "legendFormat": "IMPORT"
@@ -732,6 +732,17 @@
           "range": false,
           "instant": true,
           "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "reducers": [
+              "lastNotNull"
+            ],
+            "mode": "seriesToRows"
+          }
         }
       ]
     },
@@ -851,6 +862,17 @@
           "range": false,
           "instant": true,
           "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "reducers": [
+              "lastNotNull"
+            ],
+            "mode": "seriesToRows"
+          }
         }
       ]
     },
@@ -1109,7 +1131,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (site) (nbu_status_count{action=\"BACKUP\", status=\"0\", site=~\"$site\"}) / clamp_min(sum by (site) (nbu_status_count{action=\"BACKUP\", site=~\"$site\"}), 1) * 100",
+          "expr": "(sum by (site) (nbu_status_count{action=\"BACKUP\", status=\"0\", site=~\"$site\"}) or 0 * sum by (site) (nbu_status_count{action=\"BACKUP\", site=~\"$site\"})) / clamp_min(sum by (site) (nbu_status_count{action=\"BACKUP\", site=~\"$site\"}), 1) * 100",
           "legendFormat": "{{site}}",
           "range": false,
           "instant": true,
@@ -1294,6 +1316,17 @@
           "range": false,
           "instant": true,
           "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "reducers": [
+              "lastNotNull"
+            ],
+            "mode": "seriesToRows"
+          }
         }
       ]
     },
@@ -1561,7 +1594,7 @@
           "legendFormat": "IMPORT {{site}}",
           "range": true,
           "instant": false,
-          "refId": "A"
+          "refId": "B"
         }
       ]
     },
@@ -1612,7 +1645,9 @@
             "excludeByName": {
               "Time": true,
               "__name__": true,
-              "action": true
+              "action": true,
+              "instance": true,
+              "job": true
             },
             "indexByName": {
               "site": 0,
@@ -1744,7 +1779,9 @@
             "excludeByName": {
               "Time": true,
               "__name__": true,
-              "action": true
+              "action": true,
+              "instance": true,
+              "job": true
             },
             "indexByName": {
               "site": 0,
@@ -1892,11 +1929,22 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (site) (nbu_tape_drives_count{status=\"DRIVE_STATUS_UP\", site=~\"$site\"})",
+          "expr": "sum by (site) (nbu_tape_drives_count{status=\"DRIVE_STATUS_UP\", site=~\"$site\"}) or 0 * sum by (site) (nbu_tape_drives_count{site=~\"$site\"})",
           "legendFormat": "{{site}}",
           "range": false,
           "instant": true,
           "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "reducers": [
+              "lastNotNull"
+            ],
+            "mode": "seriesToRows"
+          }
         }
       ]
     },
@@ -1942,6 +1990,17 @@
           "range": false,
           "instant": true,
           "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "reducers": [
+              "lastNotNull"
+            ],
+            "mode": "seriesToRows"
+          }
         }
       ]
     },
@@ -1998,7 +2057,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (site) (nbu_tape_drives_count{status=\"DRIVE_STATUS_DOWN\", site=~\"$site\"})",
+          "expr": "sum by (site) (nbu_tape_drives_count{status=\"DRIVE_STATUS_DOWN\", site=~\"$site\"}) or 0 * sum by (site) (nbu_tape_drives_count{site=~\"$site\"})",
           "legendFormat": "{{site}}",
           "range": true,
           "instant": false,

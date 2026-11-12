@@ -252,7 +252,7 @@
           "legendFormat": "{{site}} / {{name}} total",
           "range": true,
           "instant": false,
-          "refId": "A"
+          "refId": "B"
         }
       ]
     },

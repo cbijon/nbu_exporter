@@ -3,57 +3,57 @@
 #
 # Use this configuration when:
 # - You run more than one NetBackup primary server (typically one per site)
-# - You want a single exporter instance to scrape them all
+# - You want a single exporter instance to collect from all of them
 # - You want every metric labelled with its `site`
 #
 # How it works:
 # - A background collection loop polls every site on `collectionInterval`
-#   (default 5m) and publishes an immutable snapshot. Prometheus scrapes read
-#   that snapshot, so backend API load is driven by collectionInterval, not by
+#   (default 5m) and publishes a snapshot. Prometheus scrapes read that
+#   snapshot, so backend API load is driven by collectionInterval, not by
 #   scrape frequency.
-# - Every metric series carries a `site` label (its first label).
-# - A site that is down only shows `nbu_up{site="..."} = 0`; the other sites are
-#   unaffected (graceful degradation).
+# - Each site detects its own API version (14.0 -> 13.0 -> 12.0 -> 10.0), so
+#   sites on different NetBackup releases can share one exporter.
+# - Every metric series carries a `site` label.
+# - A site that is down only shows `nbu_up{site="..."} = 0`; the other sites
+#   keep reporting.
 
 server:
     host: "0.0.0.0"
     port: "9440"
     uri: "/metrics"
-    scrapingInterval: "1h"      # Job lookback window per collection
-    collectionInterval: "5m"    # How often the loop polls every site (default 5m)
-    logName: "log/nbu-exporter.log"
+    scrapingInterval: "1h"      # job look-back window
+    collectionInterval: "5m"    # how often the loop polls every site
+    logName: "stdout"
 
 # One entry per NetBackup primary server. `site` is required and must be unique;
 # it becomes the `site` label value on every metric collected from that server.
 nbuservers:
-    - site: "paris"
+    - site: "primary"
       scheme: "https"
       uri: "/netbackup"
-      host: "nbu-paris.my.domain"
+      host: "${NBU1_HOSTNAME}"   # e.g. master.my.domain
       port: "1556"
-      apiVersion: "13.0"        # Optional; omit to auto-detect (14.0 -> 13.0 -> 12.0 -> 10.0)
-      apiKey: "paris-api-key-here"  # Generate from the NetBackup UI
-      insecureSkipVerify: false
+      apiKey: "${NBU1_APIKEY}"
+      insecureSkipVerify: "${NBU1_SKIP_CERTIFICATE:-false}"
 
-    - site: "lyon"
+    - site: "secondary"
       scheme: "https"
       uri: "/netbackup"
-      host: "nbu-lyon.my.domain"
+      host: "${NBU2_HOSTNAME}"   # e.g. master2.my.domain
       port: "1556"
-      apiVersion: "13.0"
-      apiKey: "lyon-api-key-here"
-      insecureSkipVerify: false
+      apiKey: "${NBU2_APIKEY}"
+      insecureSkipVerify: "${NBU2_SKIP_CERTIFICATE:-false}"
 
 # Backward compatibility:
-# - A legacy single `nbuserver:` block (with no `nbuservers:` list) still works:
-#   it is auto-mapped to a one-entry list whose `site` defaults to the host.
-#   Migrate to multi-site by replacing the `nbuserver:` block with a
-#   `nbuservers:` list like the one above.
+# - A legacy single `nbuserver:` block (with no `nbuservers:` list) is still
+#   accepted: it is mapped to a one-entry list whose `site` is the host, and a
+#   deprecation warning is logged. Migrate by replacing it with a list like the
+#   one above.
 
 # Notes:
-# - Replace the host / apiKey placeholders with your real values.
 # - For contiguous job coverage, keep scrapingInterval >= collectionInterval.
-#   The exporter uses the larger of the two as the per-poll job lookback window.
-# - Changing `nbuservers:` takes effect on restart (the collection loop builds
-#   its targets at startup).
-# - Keep insecureSkipVerify: false in production.
+#   The exporter uses the larger of the two as the per-poll job look-back window.
+# - Adding or removing sites takes effect on restart only; a reload that sees a
+#   changed `nbuservers:` list logs a RESTART warning.
+# - With Docker Compose, forward every NBU1_* / NBU2_* variable in the service
+#   `environment:` block (the .env file is not mounted into the container).

@@ -46,12 +46,12 @@ All dashboards share the `$site` selector (above); the table below lists each on
 | **Overview** | `nbu-overview.json` / `nbu-overview` | One-screen health and headline KPIs (per-site availability, success rate, failed backups, storage % used, infected files, alerts) that link out to the domain dashboards | — |
 | **Jobs** | `nbu-jobs.json` / `nbu-jobs` | Backup outcomes, job states, jobs by policy, backup volume, queued jobs, duration p50/p95, files, deduplication | `$policy_type` |
 | **Storage** | `nbu-storage.json` / `nbu-storage` | Capacity utilization, used-vs-total trend, per-unit table, max concurrent jobs, max fragment size | `$storage_unit` |
-| **Data Protection** | `nbu-dataprotection.json` / `nbu-dataprotection` | NetBackup 11.2 collectors: alerts by severity/category, malware scanned vs infected and scan status, catalog malware/anomaly posture, configured SLOs | — |
+| **Data Protection** | `nbu-dataprotection.json` / `nbu-dataprotection` | NetBackup 11.1+ (API 14.0) collectors: alerts by severity/category, malware scanned vs infected and scan status, catalog malware/anomaly posture, configured SLOs | — |
 | **Lifecycle** | `nbu-lifecycle.json` / `nbu-lifecycle` | Per-client compliance across the full lifecycle (BACKUP → DUPLICATION → IMPORT): success rate per phase, age-of-last-success table, overdue clients | `$client` |
 | **Tape & Disk Pools** | `nbu-tape.json` / `nbu-tape` | Tape drive status, media by pool/type, partially-full volume pools, and disk-pool volume health | — |
 | **Multi-site** | `nbu-multisite.json` / `nbu-multisite` | Side-by-side cross-site comparison of backup volume, success rate, inter-site replication, divergence, and per-site tape | `$client` |
 
-The **Data Protection** dashboard's panels stay empty until the optional 11.2 collectors are enabled
+The **Data Protection** dashboard's panels stay empty until the optional 11.1+ collectors are enabled
 in `config.yaml` (`collectors.{alerts,malware,catalog,slo}.enabled: true`) and the appliance returns
 data, so it is safe to leave in place on older NetBackup versions. Likewise **Lifecycle** and the
 per-site/`$client` panels on **Multi-site** stay empty until `collectors.perClient` is enabled with a

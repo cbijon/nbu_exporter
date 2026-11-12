@@ -1,6 +1,6 @@
 // Package exporter provides API version detection functionality for NetBackup.
 // It implements automatic version detection with fallback logic to support
-// multiple NetBackup versions (10.0-10.4, 10.5, 11.0, and 11.2).
+// multiple NetBackup versions (10.0-10.4, 10.5, 11.0, and 11.1/11.2).
 package exporter
 
 import (
@@ -41,7 +41,7 @@ var DefaultRetryConfig = RetryConfig{
 
 // APIVersionDetector handles automatic detection of supported NetBackup API versions.
 // It tests versions in descending order (14.0 → 13.0 → 12.0 → 10.0) and returns the first
-// working version. This allows the exporter to work with NetBackup 10.0-10.4, 10.5, 11.0, and 11.2
+// working version. This allows the exporter to work with NetBackup 10.0-10.4, 10.5, 11.0, and 11.1/11.2
 // without manual configuration.
 //
 // The detector is immutable - it does not modify any configuration during detection.
@@ -53,6 +53,9 @@ type APIVersionDetector struct {
 	apiKey      string       // API key for authentication (immutable)
 	retryConfig RetryConfig  // Retry configuration for transient failures
 	tracer      trace.Tracer // OpenTelemetry tracer for distributed tracing (nil if tracing disabled)
+	// netErr is the transport error (connection refused, timeout, DNS, TLS) of the
+	// last version probe, nil when the master answered with any HTTP status.
+	netErr error
 }
 
 // NewAPIVersionDetector creates a new version detector with the provided client and immutable configuration values.
@@ -86,7 +89,7 @@ func NewAPIVersionDetector(client *NbuClient, baseURL, apiKey string) *APIVersio
 // that successfully responds to a test request.
 //
 // The detection process:
-// 1. Try API version 14.0 (NetBackup 11.2)
+// 1. Try API version 14.0 (NetBackup 11.1 / 11.2)
 // 2. If HTTP 406, try API version 13.0 (NetBackup 11.0)
 // 3. If HTTP 406, try API version 12.0 (NetBackup 10.5)
 // 4. If HTTP 406, try API version 10.0 (NetBackup 10.0-10.4)
@@ -130,7 +133,22 @@ func (d *APIVersionDetector) DetectVersion(ctx context.Context) (string, error) 
 	for _, version := range models.SupportedAPIVersions {
 		log.Debugf("Attempting API version %s", version)
 
-		if d.tryVersion(ctx, version) {
+		d.netErr = nil
+		ok := d.tryVersion(ctx, version)
+		if !ok && d.netErr != nil {
+			// The master did not answer at all: the remaining versions target the
+			// same host and would each fail the same way after the same retries
+			// (minutes for an unreachable or firewalled master). Fail fast; the
+			// collection loop retries detection on its next cycle.
+			err := fmt.Errorf("NetBackup master unreachable at %s (version detection stopped at %s): %w",
+				d.baseURL, version, d.netErr)
+			if span != nil {
+				span.RecordError(err)
+				span.SetStatus(codes.Error, "NetBackup master unreachable")
+			}
+			return "", err
+		}
+		if ok {
 			log.Infof("Successfully detected API version: %s", version)
 
 			// Record detected version as span attribute
@@ -221,6 +239,7 @@ func (d *APIVersionDetector) retryVersionTest(ctx context.Context, version, test
 				continue
 			}
 			d.recordNetworkError(span, version, err)
+			d.netErr = err
 			return false
 		}
 

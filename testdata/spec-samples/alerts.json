@@ -1,0 +1,59 @@
+{
+ "data": [
+  {
+   "attributes": {
+    "category": "JOB",
+    "context": "GENERAL",
+    "createdDateTime": "sample",
+    "description": "sample",
+    "descriptionId": 1,
+    "params": {},
+    "severity": "INFO",
+    "subCategory": "STANDARD",
+    "systemDefined": true,
+    "tags": [
+     "sample"
+    ],
+    "title": "sample",
+    "titleId": 1
+   },
+   "id": "sample",
+   "links": {
+    "self": {
+     "href": "sample"
+    }
+   },
+   "type": "alert"
+  }
+ ],
+ "links": {
+  "first": {
+   "href": "sample"
+  },
+  "last": {
+   "href": "sample"
+  },
+  "next": {
+   "href": "sample"
+  },
+  "prev": {
+   "href": "sample"
+  },
+  "self": {
+   "href": "sample"
+  }
+ },
+ "meta": {
+  "pagination": {
+   "count": 1,
+   "first": 1,
+   "last": 1,
+   "limit": 1,
+   "next": 1,
+   "offset": 1,
+   "page": 1,
+   "pages": 1,
+   "prev": 1
+  }
+ }
+}

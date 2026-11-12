@@ -16,26 +16,35 @@ import (
 )
 
 // tapeRoutedClient is a NetBackupClient mock. byPath serves a fixture per endpoint
-// path substring ("" => return an error, to exercise graceful degradation). byOffset
-// serves paginated fixtures keyed by path substring then page[offset] value; an offset
-// not in the map returns an empty page (which ends the collector's pagination loop).
+// path substring ("" => return an error, to exercise graceful degradation). byPage
+// serves paginated fixtures keyed by path substring then page key: the page[after]
+// cursor when present (cursor-paginated endpoints), else the page[offset] value, else
+// "" for the first request. A key not in the map returns an empty page.
 type tapeRoutedClient struct {
-	t        *testing.T
-	byPath   map[string]string
-	byOffset map[string]map[string]string
+	t      *testing.T
+	byPath map[string]string
+	byPage map[string]map[string]string
+	calls  map[string]int
 }
 
 func (c *tapeRoutedClient) FetchData(_ context.Context, rawURL string, target interface{}) error {
 	c.t.Helper()
-	for sub, offsets := range c.byOffset {
+	if c.calls == nil {
+		c.calls = map[string]int{}
+	}
+	for sub, pages := range c.byPage {
 		if strings.Contains(rawURL, sub) {
+			c.calls[sub]++
 			u, err := neturl.Parse(rawURL)
 			require.NoError(c.t, err)
-			off := u.Query().Get("page[offset]")
-			if off == "" {
-				off = "0"
+			q := u.Query()
+			key := q.Get("page[offset]")
+			if q.Has("page[after]") {
+				key = q.Get("page[after]")
+			} else if key == "0" {
+				key = ""
 			}
-			fixture, ok := offsets[off]
+			fixture, ok := pages[key]
 			if !ok { // past the last page -> empty result
 				return json.Unmarshal([]byte(`{"data":[]}`), target)
 			}
@@ -79,6 +88,7 @@ func TestTapeCollector_Drives(t *testing.T) {
 	close(ch)
 
 	driveCounts := map[string]float64{} // "drive_type|robot_type|status" -> value
+	hosts := map[string]string{}        // drive_name -> media_server
 	infoCount := 0
 	for m := range ch {
 		var d dto.Metric
@@ -91,12 +101,16 @@ func TestTapeCollector_Drives(t *testing.T) {
 			driveCounts[key] = d.GetGauge().GetValue()
 		case strings.Contains(desc, "nbu_tape_drive_info"):
 			require.Equal(t, float64(1), d.GetGauge().GetValue())
+			require.NotEmpty(t, labelValue(&d, "drive_name"), "drive name comes from data[].id")
+			require.NotEmpty(t, labelValue(&d, "media_server"), "device host falls back to devicePaths[0]")
+			hosts[labelValue(&d, "drive_name")] = labelValue(&d, "media_server")
 			infoCount++
 		}
 	}
 	require.Equal(t, float64(2), driveCounts["DT_HCART|TLD|DRIVE_STATUS_UP"])
 	require.Equal(t, float64(1), driveCounts["DT_HCART|TLD|DRIVE_STATUS_DOWN"])
 	require.Equal(t, 3, infoCount, "one nbu_tape_drive_info per drive")
+	require.Equal(t, "ms2.example.com", hosts["IBM.ULT3580-HH9.002"], "deviceHost taken from devicePaths when the attribute is empty")
 }
 
 func TestTapeCollector_MediaPaginated(t *testing.T) {
@@ -108,10 +122,10 @@ func TestTapeCollector_MediaPaginated(t *testing.T) {
 			"/storage/tape-volume-pools":   "",
 			"/storage/disk-pools":          "",
 		},
-		byOffset: map[string]map[string]string{
+		byPage: map[string]map[string]string{
 			"/storage/tape-media": {
-				"0": "../../testdata/api-versions/tape-media-page1.json",
-				"2": "../../testdata/api-versions/tape-media-page2.json",
+				"":       "../../testdata/api-versions/tape-media-page1.json",
+				"ABC002": "../../testdata/api-versions/tape-media-page2.json",
 			},
 		},
 	}
@@ -201,10 +215,10 @@ func TestTapeCollector_MediaPartialOnError(t *testing.T) {
 			"/storage/tape-volume-pools":   "",
 			"/storage/disk-pools":          "",
 		},
-		byOffset: map[string]map[string]string{
+		byPage: map[string]map[string]string{
 			"/storage/tape-media": {
-				"0": "../../testdata/api-versions/tape-media-page1.json",
-				"2": "", // page 2 errors mid-pagination
+				"":       "../../testdata/api-versions/tape-media-page1.json",
+				"ABC002": "", // page 2 errors mid-pagination
 			},
 		},
 	}
@@ -254,8 +268,120 @@ func TestTapeCollector_PoolsAndDiskPools(t *testing.T) {
 			diskVols[labelValue(&d, "pool_name")+"|"+labelValue(&d, "storage_category")+"|"+labelValue(&d, "state")] = d.GetGauge().GetValue()
 		}
 	}
-	require.Equal(t, float64(3), pools["NetBackup|SCRATCH"], "partiallyFullMedia surfaced per pool")
-	require.Equal(t, float64(0), pools["CatalogBackup|NONE"])
+	require.Equal(t, float64(3), pools["NetBackup|REGULAR_MEDIA_POOL"], "partiallyFullMedia surfaced per pool")
+	require.Equal(t, float64(0), pools["Scratch|SCRATCH_MEDIA_POOL"])
 	require.Equal(t, float64(2), diskVols["dp1|MSDP|UP"], "disk volumes counted by state")
 	require.Equal(t, float64(1), diskVols["dp1|MSDP|DOWN"])
+}
+
+// writeFixture writes body to a temp file and returns its path.
+func writeFixture(t *testing.T, body string) string {
+	t.Helper()
+	p := t.TempDir() + "/fixture.json"
+	require.NoError(t, os.WriteFile(p, []byte(body), 0o600))
+	return p
+}
+
+// A backend that keeps returning the same cursor (or ignores page[after]) must not
+// make the collector loop: it stops after the repeated cursor instead of multiplying
+// counts up to the page cap.
+func TestTapeCollector_MediaCursorEchoDoesNotLoop(t *testing.T) {
+	page := writeFixture(t, `{"data":[{"attributes":{"barcode":"X1","mediaType":"HCART","volumePool":"Scratch","robot":{"robotType":"TLD"}}}],
+		"meta":{"pagination":{"next":"X1"}}}`)
+	client := &tapeRoutedClient{
+		t: t,
+		byPath: map[string]string{
+			"/storage/drives": "", "/storage/robots-device-hosts": "",
+			"/storage/tape-volume-pools": "", "/storage/disk-pools": "",
+		},
+		byPage: map[string]map[string]string{"/storage/tape-media": {"": page, "X1": page}},
+	}
+	c := newTapeCollector(client, testConfig(), "site1")
+	ch := make(chan prometheus.Metric, 32)
+	require.NoError(t, c.Collect(context.Background(), ch))
+	close(ch)
+	var total float64
+	for m := range ch {
+		var d dto.Metric
+		require.NoError(t, m.Write(&d))
+		if strings.Contains(m.Desc().String(), "nbu_tape_media_count") {
+			total += d.GetGauge().GetValue()
+		}
+	}
+	require.Equal(t, 2, client.calls["/storage/tape-media"], "second page repeats the cursor -> stop")
+	require.Equal(t, float64(1), total, "the repeated volume (same barcode) is counted once")
+}
+
+// Offset-paginated endpoints follow meta.pagination.next and stop when it does not
+// advance (here the backend echoes next=0 on every page).
+func TestTapeCollector_DiskPoolsOffsetPagination(t *testing.T) {
+	p1 := writeFixture(t, `{"data":[{"attributes":{"name":"dp1","storageCategory":"MSDP","diskVolumes":[{"state":"UP"}]}}],
+		"meta":{"pagination":{"offset":0,"next":1}}}`)
+	p2 := writeFixture(t, `{"data":[{"attributes":{"name":"dp2","storageCategory":"ADVANCED_DISK","diskVolumes":[{"state":"DOWN"}]}}],
+		"meta":{"pagination":{"offset":1,"next":0}}}`)
+	client := &tapeRoutedClient{
+		t: t,
+		byPath: map[string]string{
+			"/storage/drives": "", "/storage/robots-device-hosts": "",
+			"/storage/tape-volume-pools": "", "/storage/tape-media": "",
+		},
+		byPage: map[string]map[string]string{"/storage/disk-pools": {"": p1, "1": p2}},
+	}
+	c := newTapeCollector(client, testConfig(), "site1")
+	ch := make(chan prometheus.Metric, 32)
+	require.NoError(t, c.Collect(context.Background(), ch))
+	close(ch)
+	got := map[string]float64{}
+	for m := range ch {
+		var d dto.Metric
+		require.NoError(t, m.Write(&d))
+		if strings.Contains(m.Desc().String(), "nbu_disk_pool_volume_count") {
+			got[labelValue(&d, "pool_name")+"|"+labelValue(&d, "state")] = d.GetGauge().GetValue()
+		}
+	}
+	require.Equal(t, 2, client.calls["/storage/disk-pools"])
+	require.Equal(t, map[string]float64{"dp1|UP": 1, "dp2|DOWN": 1}, got)
+}
+
+func TestNextOffset(t *testing.T) {
+	require.Equal(t, 100, nextOffset(0, 100, 100))
+	require.Equal(t, -1, nextOffset(0, 0, 100), "next=0 on the first page means last page")
+	require.Equal(t, -1, nextOffset(100, 100, 100), "a non-advancing next stops the loop")
+	require.Equal(t, -1, nextOffset(0, 100, 0), "an empty page stops the loop")
+}
+
+// The same drive or pool returned twice (overlapping pages) is counted once and
+// emitted once — a duplicate series would fail the whole /metrics scrape.
+func TestTapeCollector_DuplicateDriveAndPoolCountedOnce(t *testing.T) {
+	drives := writeFixture(t, `{"data":[
+		{"id":"d0","attributes":{"driveStatus":"DRIVE_STATUS_UP","driveType":"DT_HCART","robotType":"TLD","deviceHost":"ms1"}},
+		{"id":"d0","attributes":{"driveStatus":"DRIVE_STATUS_UP","driveType":"DT_HCART","robotType":"TLD","deviceHost":"ms1"}}]}`)
+	pools := writeFixture(t, `{"data":[
+		{"attributes":{"volumePoolName":"Scratch","poolType":"SCRATCH_MEDIA_POOL","partiallyFullMedia":1}},
+		{"attributes":{"volumePoolName":"Scratch","poolType":"SCRATCH_MEDIA_POOL","partiallyFullMedia":1}}]}`)
+	client := &tapeRoutedClient{t: t, byPath: map[string]string{
+		"/storage/drives": drives, "/storage/tape-volume-pools": pools,
+		"/storage/tape-media": "", "/storage/robots-device-hosts": "", "/storage/disk-pools": "",
+	}}
+	c := newTapeCollector(client, testConfig(), "site1")
+	ch := make(chan prometheus.Metric, 16)
+	require.NoError(t, c.Collect(context.Background(), ch))
+	close(ch)
+	info, pool := 0, 0
+	var count float64
+	for m := range ch {
+		var d dto.Metric
+		require.NoError(t, m.Write(&d))
+		switch desc := m.Desc().String(); {
+		case strings.Contains(desc, "nbu_tape_drive_info"):
+			info++
+		case strings.Contains(desc, "nbu_tape_drives_count"):
+			count = d.GetGauge().GetValue()
+		case strings.Contains(desc, "nbu_tape_pool_partially_full"):
+			pool++
+		}
+	}
+	require.Equal(t, 1, info)
+	require.Equal(t, float64(1), count)
+	require.Equal(t, 1, pool)
 }

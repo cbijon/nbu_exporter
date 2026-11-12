@@ -1,117 +1,81 @@
 # Deployment Quick Reference
 
-## Pre-Flight Checklist
+Full guide: [deployment-verification.md](deployment-verification.md).
+
+## Pre-checks
 
 ```bash
-# Verify NetBackup version (must be 10.5+)
-ssh netbackup-master "bpgetconfig -g | grep VERSION"
-
-# Backup current setup
-mkdir -p backups/$(date +%Y%m%d)
-cp config.yaml backups/$(date +%Y%m%d)/
-cp bin/nbu_exporter backups/$(date +%Y%m%d)/
+nc -zv master.my.domain 1556
+curl -s -H "Authorization: <key>" \
+  -H "Accept: application/vnd.netbackup+json;version=14.0" \
+  "https://master.my.domain:1556/netbackup/admin/jobs?page[limit]=1"
+# 200 = key OK + API 14.0 (NBU 11.1+) · 406 = older API, try 13.0/12.0/10.0 · 401 = bad key
 ```
 
-## Quick Deployment
+API version per NetBackup release: 14.0 = 11.1/11.2 · 13.0 = 11.0 · 12.0 = 10.5 · 10.0 = 10.0–10.4.
+The exporter detects it **per site**, so leave `apiVersion` unset.
+
+## Minimal config
+
+```yaml
+server:
+  host: "0.0.0.0"          # 0.0.0.0 in a container
+  port: "9440"
+  uri: "/metrics"
+  scrapingInterval: "1h"
+  collectionInterval: "5m"
+  logName: "stdout"
+nbuservers:
+  - site: "primary"
+    scheme: "https"
+    uri: "/netbackup"
+    host: "${NBU1_HOSTNAME}"
+    port: "1556"
+    apiKey: "${NBU1_APIKEY}"
+    insecureSkipVerify: "${NBU1_SKIP_CERTIFICATE:-false}"
+```
+
+To trust the NetBackup CA, put the PEM in `./nbu-ca/`, uncomment the `nbu-ca` volume and
+set `SSL_CERT_DIR=/etc/ssl/certs:/etc/nbu_exporter/ca` ([deploy-stack.md §10](deploy-stack.md)).
+
+## Deploy
 
 ```bash
-# 1. Stop exporter
-sudo systemctl stop nbu_exporter
-
-# 2. Update binary
-make cli  # or download pre-built binary
-
-# 3. Add API version to config (if not present)
-grep -q "apiVersion:" config.yaml || \
-  sed -i '/nbuserver:/a\    apiVersion: "12.0"' config.yaml
-
-# 4. Start exporter
-sudo systemctl start nbu_exporter
-
-# 5. Verify
-curl http://localhost:9440/health
-curl http://localhost:9440/metrics | grep "^nbu_" | head -5
+make check-rules                                   # validate + test the 4 rule files
+docker compose up -d                               # local build
+docker compose -f docker-compose.ghcr.yml up -d    # published image (NBU_IMAGE_OWNER / NBU_TAG)
+sudo systemctl restart nbu_exporter                # systemd binary
 ```
 
-## Quick Rollback
+## Verify
 
 ```bash
-# 1. Stop exporter
-sudo systemctl stop nbu_exporter
-
-# 2. Restore from backup
-BACKUP_DIR=$(ls -td backups/*/ | head -1)
-cp "${BACKUP_DIR}config.yaml" config.yaml
-cp "${BACKUP_DIR}nbu_exporter" bin/nbu_exporter
-
-# 3. Start exporter
-sudo systemctl start nbu_exporter
-
-# 4. Verify
-curl http://localhost:9440/health
+curl -s localhost:9440/health                                       # 200, per-site JSON
+curl -s localhost:9440/metrics | grep -E '^nbu_(up|api_version)'    # nbu_up 1 per site; version="14.0" on 11.1
+docker logs nbu_exporter 2>&1 | grep -A1 -E 'detected API version|"level": "(error|warning)"'
+curl -s 'localhost:9090/api/v1/query?query=up{job="netbackup"}'     # "1"
+curl -s localhost:9090/api/v1/rules                                 # 4 groups, 17 rules
 ```
 
-## Verification Commands
+## Config changes
+
+SIGHUP and file changes **validate** the config only. To apply a change, restart:
+`docker compose restart nbu_exporter` or `sudo systemctl restart nbu_exporter`.
+
+## Rollback
 
 ```bash
-# Health check
-curl http://localhost:9440/health
-
-# Metrics check
-curl -s http://localhost:9440/metrics | grep "^nbu_" | wc -l
-
-# Log check
-tail -50 log/nbu-exporter.log | grep -E "ERROR|Successfully"
-
-# Prometheus check
-curl -s 'http://prometheus:9090/api/v1/query?query=up{job="netbackup"}'
+NBU_TAG=<previous-tag> docker compose -f docker-compose.ghcr.yml up -d
+# systemd: restore the previous /usr/local/bin/nbu_exporter + config.yaml, then restart
 ```
 
-## Common Issues
+## Common issues
 
-### Exporter won't start
-```bash
-# Check logs
-./bin/nbu_exporter --config config.yaml --debug
-
-# Verify config syntax
-cat config.yaml | python -m yaml
-```
-
-### API version errors
-```bash
-# Verify NetBackup version
-ssh netbackup-master "bpgetconfig -g | grep VERSION"
-
-# Check API version format (must be "X.Y")
-grep apiVersion config.yaml
-```
-
-### Metrics not updating
-```bash
-# Test API connectivity
-curl -k -H "Authorization: YOUR_API_KEY" \
-  https://netbackup-master:1556/netbackup/storage/storage-units
-
-# Check logs
-tail -100 log/nbu-exporter.log | grep ERROR
-```
-
-## Automated Scripts
-
-```bash
-# Run deployment verification
-./scripts/verify-deployment.sh
-
-# Automated deployment (if available)
-./scripts/deploy-nbu-exporter.sh
-
-# Automated rollback (if available)
-./scripts/rollback-nbu-exporter.sh backups/YYYYMMDD-HHMMSS/
-```
-
-## Support
-
-- Full Guide: [docs/deployment-verification.md](deployment-verification.md)
-- Migration Guide: [docs/api-10.5-migration.md](api-10.5-migration.md)
-- Issues: <https://github.com/fjacquet/nbu_exporter/issues>
+| Symptom | Fix |
+|---------|-----|
+| Exits at startup | Read the validation error. Check that every `${VAR}` is forwarded to the container. |
+| `nbu_up{site}` 0 | Check `/health` `err`, then run the pre-check curl against that site. |
+| x509 unknown authority | Trust the NetBackup CA. Use `insecureSkipVerify` only as a last resort. |
+| Not reachable on 9440 | Set `server.host: "0.0.0.0"`. |
+| Collector metrics missing | Enable it under `collectors:` and restart. alerts/malware/catalog/slo need API 14.0; `perClient` needs a non-empty allowlist. |
+| Need API payloads | `./bin/nbu_exporter -c config.yaml --trace` (logs bodies only, never headers). |

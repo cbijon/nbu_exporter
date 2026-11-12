@@ -10,9 +10,11 @@ services:
     volumes:
       # Mount configuration file (read-only)
       - ./config.yaml:/etc/nbu_exporter/config.yaml:ro
+      # NetBackup CA (keep TLS verification on) — see docs/deploy-stack.md §10:
+      # - ./nbu-ca:/etc/nbu_exporter/ca:ro
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9440/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:9440/livez"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -27,13 +29,20 @@ services:
           cpus: "0.25"
           memory: 128M
     environment:
-      # Single-server quickstart: set these in a .env file (gitignored).
-      # config.yaml is the source of truth — these vars are only consumed
-      # when config.yaml references them as ${NBU1_HOSTNAME} / ${NBU1_APIKEY}.
-      # For multiple servers add more entries in config.yaml (literal values
-      # or your own env references) rather than extending this block.
+      # Set these in a .env file (gitignored). config.yaml is the source of
+      # truth — these vars are only consumed where config.yaml references them
+      # (${NBU1_HOSTNAME}, ${NBU2_APIKEY}, ...). The .env file is NOT mounted
+      # into the container, so every variable config.yaml references must be
+      # forwarded here. NBU2_* feed the second nbuservers: entry (multi-site);
+      # they are ignored while that entry stays commented out.
       - NBU1_HOSTNAME=${NBU1_HOSTNAME:-master.my.domain}
       - NBU1_APIKEY=${NBU1_APIKEY:-}
+      - NBU1_SKIP_CERTIFICATE=${NBU1_SKIP_CERTIFICATE:-false}
+      - NBU2_HOSTNAME=${NBU2_HOSTNAME:-}
+      - NBU2_APIKEY=${NBU2_APIKEY:-}
+      - NBU2_SKIP_CERTIFICATE=${NBU2_SKIP_CERTIFICATE:-false}
+      # Trust the mounted NetBackup CA in addition to the system roots (§10):
+      # - SSL_CERT_DIR=/etc/ssl/certs:/etc/nbu_exporter/ca
     networks:
       - monitoring
 
@@ -50,7 +59,9 @@ services:
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./deploy/prometheus/nbu.rules.yml:/etc/prometheus/rules/nbu.rules.yml:ro
-      - ./deploy/prometheus/nbu-lifecycle.rules.yml:/etc/prometheus/rules/nbu-lifecycle.rules.yml:ro
+      - ./deploy/prometheus/rules-perclient.yml:/etc/prometheus/rules/rules-perclient.yml:ro
+      - ./deploy/prometheus/rules-tape.yml:/etc/prometheus/rules/rules-tape.yml:ro
+      - ./deploy/prometheus/rules-multisite.yml:/etc/prometheus/rules/rules-multisite.yml:ro
       - prometheus-data:/prometheus
     ports:
       - "${PROMETHEUS_PORT:-9090}:9090"

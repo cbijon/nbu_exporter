@@ -1,0 +1,125 @@
+{
+ "data": [
+  {
+   "attributes": {
+    "acceleratorOptimization": 1.5,
+    "activeElapsedTime": "sample",
+    "activeProcessId": 1,
+    "activeTryStartTime": "2026-11-12T10:00:00.000Z",
+    "applicationType": "NONE",
+    "assetDisplayableName": "sample",
+    "assetID": "sample",
+    "auditDomainName": "sample",
+    "auditDomainType": 1,
+    "auditUserName": "sample",
+    "backupId": "sample",
+    "cancellable": 1,
+    "childCount": 1,
+    "clientName": "sample",
+    "compression": 1,
+    "compressionSpaceRatio": 1.5,
+    "controlHost": "sample",
+    "copyNumber": 1,
+    "currentFile": "sample",
+    "currentOperation": 1,
+    "dataMovement": "STANDARD",
+    "dedupRatio": 1.5,
+    "dedupSpaceRatio": 1.5,
+    "destinationMediaId": "sample",
+    "destinationMediaServerName": "sample",
+    "destinationStorageUnitName": "sample",
+    "dteMode": "UNKNOWN",
+    "dumpHost": "sample",
+    "elapsedTime": "sample",
+    "endTime": "2026-11-12T10:00:00.000Z",
+    "estimatedFiles": 1,
+    "frozenImage": 1,
+    "instanceDatabaseName": "sample",
+    "jobGroup": "sample",
+    "jobId": 1,
+    "jobOwner": "sample",
+    "jobPath": "sample",
+    "jobQueueReason": 1,
+    "jobQueueResource": "sample",
+    "jobSubType": "IMMEDIATE",
+    "jobType": "BACKUP",
+    "kilobytesDataTransferred": 1,
+    "kilobytesToTransfer": 1,
+    "kilobytesTransferred": 1,
+    "lastUpdateTime": "2026-11-12T10:00:00.000Z",
+    "mainProcessId": 1,
+    "numberOfFiles": 1,
+    "numberOfTapeToEject": 1,
+    "offHostType": "STANDARD",
+    "parentJobId": 1,
+    "percentComplete": 1,
+    "policyName": "sample",
+    "policyType": "STANDARD",
+    "priority": 1,
+    "profileName": "sample",
+    "restartable": 1,
+    "restoreBackupIDs": "sample",
+    "resumable": 1,
+    "retentionLevel": 1,
+    "robotName": "sample",
+    "scheduleName": "sample",
+    "scheduleType": "FULL_BACKUP",
+    "sessionId": 1,
+    "sourceMediaId": "sample",
+    "sourceMediaServerName": "sample",
+    "sourceStorageUnitName": "sample",
+    "startTime": "2026-11-12T10:00:00.000Z",
+    "state": "QUEUED",
+    "status": 1,
+    "streamNumber": 1,
+    "submissionType": 1,
+    "suspendable": 1,
+    "transferRate": 1,
+    "transportType": "LAN",
+    "try": 1,
+    "vaultName": "sample",
+    "workloadDisplayName": "sample"
+   },
+   "id": "sample",
+   "links": {
+    "file-lists": {
+     "href": "sample"
+    },
+    "self": {
+     "href": "sample"
+    },
+    "try-logs": {
+     "href": "sample"
+    }
+   },
+   "meta": {
+    "page": {
+     "cursor": "sample"
+    }
+   },
+   "type": "sample"
+  }
+ ],
+ "links": {
+  "first": {
+   "href": "sample"
+  },
+  "next": {
+   "href": "sample"
+  },
+  "prev": {
+   "href": "sample"
+  },
+  "self": {
+   "href": "sample"
+  }
+ },
+ "meta": {
+  "pagination": {
+   "limit": 1,
+   "next": "sample",
+   "prev": "sample",
+   "rangeTruncated": true
+  }
+ }
+}

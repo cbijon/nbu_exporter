@@ -13,8 +13,8 @@ const (
 	drivesPath         = "/storage/drives"
 	tapeMediaPath      = "/storage/tape-media"
 	robotHostPath      = "/storage/robots-device-hosts"
-	tapeVolumePoolPath = "/storage/tape-volume-pools" // API v12.0+ (absent on v10.0)
-	diskPoolsPath      = "/storage/disk-pools"        // API v12.0+ (absent on v10.0)
+	tapeVolumePoolPath = "/storage/tape-volume-pools" // API v12.0+ (NBU 10.5+)
+	diskPoolsPath      = "/storage/disk-pools"        // present since API v10.0 (NBU 10.3)
 	maxMediaPages      = 1000                         // safety cap so a backend ignoring page[offset] cannot loop forever
 	pageLimitInt       = 100                          // int form of pageLimit ("100"), for full-page truncation checks
 )
@@ -102,32 +102,51 @@ func (c *tapeCollector) collectRobotHosts(ctx context.Context, ch chan<- prometh
 	ch <- prometheus.MustNewConstMetric(c.robotHostsCount, prometheus.GaugeValue, float64(len(resp.Data)), c.site)
 }
 
+// nextOffset returns the offset of the following page for offset-paginated endpoints
+// (drives, disk-pools), or -1 when pagination is over. It refuses to move backwards or
+// stay put so a backend that echoes the same meta.pagination.next cannot loop forever.
+func nextOffset(current, next, rows int) int {
+	if rows == 0 || next <= current {
+		return -1
+	}
+	return next
+}
+
+// collectMedia follows the cursor pagination of GET /storage/tape-media
+// (page[after] = meta.pagination.next, empty on the last page) and emits
+// nbu_tape_media_count per (pool, media_type, robot_type).
 func (c *tapeCollector) collectMedia(ctx context.Context, ch chan<- prometheus.Metric) {
 	type key struct{ pool, mediaType, robotType string }
 	counts := map[key]float64{}
-	offset := 0
+	seen := map[string]struct{}{} // barcodes already counted (pages may overlap)
+	cursor := ""
 	for page := 0; page < maxMediaPages; page++ {
-		url := c.cfg.BuildURL(tapeMediaPath, map[string]string{
-			QueryParamLimit:  pageLimit,
-			QueryParamOffset: strconv.Itoa(offset),
-		})
+		params := map[string]string{QueryParamLimit: pageLimit}
+		if cursor != "" {
+			params[QueryParamAfter] = cursor
+		}
 		var resp models.TapeMedia
-		if err := c.client.FetchData(ctx, url, &resp); err != nil {
+		if err := c.client.FetchData(ctx, c.cfg.BuildURL(tapeMediaPath, params), &resp); err != nil {
 			// Break (not return) so counts already aggregated from earlier pages are
 			// still emitted — degraded-but-partial rather than all-or-nothing.
 			log.WithError(err).WithField("site", c.site).Warn("tape: tape-media fetch failed; emitting partial counts")
 			break
 		}
-		if len(resp.Data) == 0 { // empty page: no more rows
-			break
-		}
 		for _, d := range resp.Data {
-			counts[key{d.Attributes.VolumePool, d.Attributes.MediaType, d.Attributes.RobotType}]++
+			a := d.Attributes
+			if a.Barcode != "" {
+				if _, dup := seen[a.Barcode]; dup {
+					continue
+				}
+				seen[a.Barcode] = struct{}{}
+			}
+			counts[key{a.VolumePool, a.MediaType, a.Robot.RobotType}]++
 		}
-		offset += len(resp.Data) // advance by rows returned; loop ends on the next empty page
-		if ctx.Err() != nil {
+		next := resp.Meta.Pagination.Next
+		if next == "" || next == cursor || len(resp.Data) == 0 || ctx.Err() != nil {
 			break
 		}
+		cursor = next
 		if page == maxMediaPages-1 {
 			log.WithField("site", c.site).Warnf("tape: tape-media pagination hit the %d-page cap; counts may be truncated", maxMediaPages)
 		}
@@ -137,20 +156,44 @@ func (c *tapeCollector) collectMedia(ctx context.Context, ch chan<- prometheus.M
 	}
 }
 
+// collectDrives pages GET /storage/drives (offset-paginated). The drive name is the
+// resource id; deviceHost falls back to the first device path when the top-level
+// attribute is empty (shared drives list one path per host).
 func (c *tapeCollector) collectDrives(ctx context.Context, ch chan<- prometheus.Metric) {
-	url := c.cfg.BuildURL(drivesPath, map[string]string{QueryParamLimit: pageLimit, QueryParamOffset: "0"})
-	var resp models.TapeDrives
-	if err := c.client.FetchData(ctx, url, &resp); err != nil {
-		log.WithError(err).WithField("site", c.site).Warn("tape: drives fetch failed; skipping")
-		return
-	}
 	type key struct{ driveType, robotType, status string }
 	counts := map[key]float64{}
-	for _, d := range resp.Data {
-		a := d.Attributes
-		counts[key{a.DriveType, a.RobotType, a.DriveStatus}]++
-		ch <- prometheus.MustNewConstMetric(c.driveInfo, prometheus.GaugeValue, 1,
-			c.site, a.DriveName, a.DeviceHost, a.DriveType, strconv.Itoa(a.RobotNumber), a.DriveStatus)
+	seen := map[string]struct{}{} // drive names already counted (pages may overlap)
+	offset := 0
+	for page := 0; page < maxMediaPages && offset >= 0; page++ {
+		url := c.cfg.BuildURL(drivesPath, map[string]string{QueryParamLimit: pageLimit, QueryParamOffset: strconv.Itoa(offset)})
+		var resp models.TapeDrives
+		if err := c.client.FetchData(ctx, url, &resp); err != nil {
+			log.WithError(err).WithField("site", c.site).Warn("tape: drives fetch failed; skipping")
+			break
+		}
+		for _, d := range resp.Data {
+			a := d.Attributes
+			name, host := d.ID, a.DeviceHost
+			if len(a.DevicePaths) > 0 {
+				if name == "" {
+					name = a.DevicePaths[0].DriveName
+				}
+				if host == "" {
+					host = a.DevicePaths[0].DeviceHost
+				}
+			}
+			if _, dup := seen[name+"\x00"+host]; dup {
+				continue
+			}
+			seen[name+"\x00"+host] = struct{}{}
+			counts[key{a.DriveType, a.RobotType, a.DriveStatus}]++
+			ch <- prometheus.MustNewConstMetric(c.driveInfo, prometheus.GaugeValue, 1,
+				c.site, name, host, a.DriveType, strconv.Itoa(a.RobotNumber), a.DriveStatus)
+		}
+		if ctx.Err() != nil {
+			break
+		}
+		offset = nextOffset(offset, resp.Meta.Pagination.Next, len(resp.Data))
 	}
 	for k, v := range counts {
 		ch <- prometheus.MustNewConstMetric(c.drivesCount, prometheus.GaugeValue, v,
@@ -158,44 +201,47 @@ func (c *tapeCollector) collectDrives(ctx context.Context, ch chan<- prometheus.
 	}
 }
 
-// collectPools paginates GET /storage/tape-volume-pools (API v12.0+) and emits
-// nbu_tape_pool_partially_full per (pool_name, pool_type). Absent on older
-// appliances; the fetch error is logged and skipped (graceful degradation).
+// collectPools follows the cursor pagination of GET /storage/tape-volume-pools
+// (API v12.0+) and emits nbu_tape_pool_partially_full per (pool_name, pool_type).
+// Absent on older appliances; the fetch error is logged and skipped.
 func (c *tapeCollector) collectPools(ctx context.Context, ch chan<- prometheus.Metric) {
-	offset := 0
+	seen := map[string]struct{}{} // pool names already emitted (pages may overlap)
+	cursor := ""
 	for page := 0; page < maxMediaPages; page++ {
-		url := c.cfg.BuildURL(tapeVolumePoolPath, map[string]string{
-			QueryParamLimit:  pageLimit,
-			QueryParamOffset: strconv.Itoa(offset),
-		})
+		params := map[string]string{QueryParamLimit: pageLimit}
+		if cursor != "" {
+			params[QueryParamAfter] = cursor
+		}
 		var resp models.TapeVolumePools
-		if err := c.client.FetchData(ctx, url, &resp); err != nil {
+		if err := c.client.FetchData(ctx, c.cfg.BuildURL(tapeVolumePoolPath, params), &resp); err != nil {
 			log.WithError(err).WithField("site", c.site).Warn("tape: tape-volume-pools fetch failed; skipping")
 			return
 		}
 		for _, p := range resp.Data {
 			a := p.Attributes
+			if _, dup := seen[a.VolumePoolName]; dup {
+				continue
+			}
+			seen[a.VolumePoolName] = struct{}{}
 			ch <- prometheus.MustNewConstMetric(c.poolPartial, prometheus.GaugeValue,
 				float64(a.PartiallyFullMedia), c.site, a.VolumePoolName, a.PoolType)
 		}
-		if resp.Meta.Pagination.Next == 0 || len(resp.Data) == 0 {
-			break
+		next := resp.Meta.Pagination.Next
+		if next == "" || next == cursor || len(resp.Data) == 0 || ctx.Err() != nil {
+			return
 		}
-		offset = resp.Meta.Pagination.Next
-		if ctx.Err() != nil {
-			break
-		}
+		cursor = next
 	}
 }
 
-// collectDiskPools paginates GET /storage/disk-pools (API v12.0+) and emits
-// nbu_disk_pool_volume_count per (pool_name, storage_category, volume state).
+// collectDiskPools pages GET /storage/disk-pools (API v12.0+, offset-paginated) and
+// emits nbu_disk_pool_volume_count per (pool_name, storage_category, volume state).
 // Absent on older appliances; the fetch error is logged and skipped.
 func (c *tapeCollector) collectDiskPools(ctx context.Context, ch chan<- prometheus.Metric) {
 	type key struct{ poolName, storageCategory, state string }
 	counts := map[key]float64{}
 	offset := 0
-	for page := 0; page < maxMediaPages; page++ {
+	for page := 0; page < maxMediaPages && offset >= 0; page++ {
 		url := c.cfg.BuildURL(diskPoolsPath, map[string]string{
 			QueryParamLimit:  pageLimit,
 			QueryParamOffset: strconv.Itoa(offset),
@@ -211,13 +257,10 @@ func (c *tapeCollector) collectDiskPools(ctx context.Context, ch chan<- promethe
 				counts[key{a.Name, a.StorageCategory, vol.State}]++
 			}
 		}
-		if resp.Meta.Pagination.Next == 0 || len(resp.Data) == 0 {
-			break
-		}
-		offset = resp.Meta.Pagination.Next
 		if ctx.Err() != nil {
 			break
 		}
+		offset = nextOffset(offset, resp.Meta.Pagination.Next, len(resp.Data))
 	}
 	for k, v := range counts {
 		ch <- prometheus.MustNewConstMetric(c.diskPoolVolumes, prometheus.GaugeValue, v,

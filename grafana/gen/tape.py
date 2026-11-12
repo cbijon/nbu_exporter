@@ -36,13 +36,13 @@ def build():
 
     out.append(p.stat(
         "Lecteurs UP / Drives UP",
-        'sum(nbu_tape_drives_count{status="DRIVE_STATUS_UP", site=~"$site"})',
+        'sum(nbu_tape_drives_count{status="DRIVE_STATUS_UP", site=~"$site"}) or 0 * sum(nbu_tape_drives_count{site=~"$site"})',
         0, 9, 6, 4,
         thresholds=[{"color": "green", "value": None}],
     ))
     out.append(p.stat(
         "Lecteurs DOWN / Drives DOWN",
-        'sum(nbu_tape_drives_count{status="DRIVE_STATUS_DOWN", site=~"$site"})',
+        'sum(nbu_tape_drives_count{status="DRIVE_STATUS_DOWN", site=~"$site"}) or 0 * sum(nbu_tape_drives_count{site=~"$site"})',
         6, 9, 6, 4,
         thresholds=[
             {"color": "green", "value": None},
@@ -136,13 +136,13 @@ def build():
 
     out.append(p.stat(
         "Volumes UP",
-        'sum(nbu_disk_pool_volume_count{state="UP", site=~"$site"})',
+        'sum(nbu_disk_pool_volume_count{state="UP", site=~"$site"}) or 0 * sum(nbu_disk_pool_volume_count{site=~"$site"})',
         0, 47, 6, 4,
         thresholds=[{"color": "green", "value": None}],
     ))
     out.append(p.stat(
         "Volumes DOWN",
-        'sum(nbu_disk_pool_volume_count{state="DOWN", site=~"$site"})',
+        'sum(nbu_disk_pool_volume_count{state="DOWN", site=~"$site"}) or 0 * sum(nbu_disk_pool_volume_count{site=~"$site"})',
         6, 47, 6, 4,
         thresholds=[
             {"color": "green", "value": None},
@@ -151,7 +151,7 @@ def build():
     ))
     out.append(p.stat(
         "Volumes UNKNOWN",
-        'sum(nbu_disk_pool_volume_count{state="UNKNOWN", site=~"$site"})',
+        'sum(nbu_disk_pool_volume_count{state="UNKNOWN", site=~"$site"}) or 0 * sum(nbu_disk_pool_volume_count{site=~"$site"})',
         12, 47, 6, 4,
         thresholds=[
             {"color": "green", "value": None},

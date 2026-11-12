@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"sync"
 	"testing"
+
+	"gopkg.in/yaml.v2"
 )
 
 func TestNewSafeConfig(t *testing.T) {
@@ -83,9 +85,19 @@ nbuserver:
 		t.Fatalf("Failed to write initial config: %v", err)
 	}
 
+	// Start from the config as the exporter would at startup: decoded and validated
+	// (Validate maps the legacy block into NbuServers, which reload compares).
+	raw, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
 	cfg := &Config{}
-	cfg.NbuServer.Host = "nbu1.example.com"
-	cfg.NbuServer.Port = "1556"
+	if err := yaml.Unmarshal(raw, cfg); err != nil {
+		t.Fatal(err)
+	}
+	if err := cfg.Validate(); err != nil {
+		t.Fatal(err)
+	}
 	sc := NewSafeConfig(cfg)
 
 	// Reload with same server - should return false for serverChanged

@@ -162,7 +162,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(nbu_tape_drives_count{status=\"DRIVE_STATUS_UP\", site=~\"$site\"})",
+          "expr": "sum(nbu_tape_drives_count{status=\"DRIVE_STATUS_UP\", site=~\"$site\"}) or 0 * sum(nbu_tape_drives_count{site=~\"$site\"})",
           "legendFormat": "",
           "range": false,
           "instant": true,
@@ -227,7 +227,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(nbu_tape_drives_count{status=\"DRIVE_STATUS_DOWN\", site=~\"$site\"})",
+          "expr": "sum(nbu_tape_drives_count{status=\"DRIVE_STATUS_DOWN\", site=~\"$site\"}) or 0 * sum(nbu_tape_drives_count{site=~\"$site\"})",
           "legendFormat": "",
           "range": false,
           "instant": true,
@@ -392,6 +392,17 @@
           "range": false,
           "instant": true,
           "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "reducers": [
+              "lastNotNull"
+            ],
+            "mode": "seriesToRows"
+          }
         }
       ]
     },
@@ -681,6 +692,17 @@
           "instant": true,
           "refId": "A"
         }
+      ],
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "reducers": [
+              "lastNotNull"
+            ],
+            "mode": "seriesToRows"
+          }
+        }
       ]
     },
     {
@@ -807,6 +829,17 @@
           "range": false,
           "instant": true,
           "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "reducers": [
+              "lastNotNull"
+            ],
+            "mode": "seriesToRows"
+          }
         }
       ]
     },
@@ -937,7 +970,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(nbu_disk_pool_volume_count{state=\"UP\", site=~\"$site\"})",
+          "expr": "sum(nbu_disk_pool_volume_count{state=\"UP\", site=~\"$site\"}) or 0 * sum(nbu_disk_pool_volume_count{site=~\"$site\"})",
           "legendFormat": "",
           "range": false,
           "instant": true,
@@ -1002,7 +1035,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(nbu_disk_pool_volume_count{state=\"DOWN\", site=~\"$site\"})",
+          "expr": "sum(nbu_disk_pool_volume_count{state=\"DOWN\", site=~\"$site\"}) or 0 * sum(nbu_disk_pool_volume_count{site=~\"$site\"})",
           "legendFormat": "",
           "range": false,
           "instant": true,
@@ -1067,7 +1100,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(nbu_disk_pool_volume_count{state=\"UNKNOWN\", site=~\"$site\"})",
+          "expr": "sum(nbu_disk_pool_volume_count{state=\"UNKNOWN\", site=~\"$site\"}) or 0 * sum(nbu_disk_pool_volume_count{site=~\"$site\"})",
           "legendFormat": "",
           "range": false,
           "instant": true,
@@ -1178,6 +1211,17 @@
           "range": false,
           "instant": true,
           "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "reducers": [
+              "lastNotNull"
+            ],
+            "mode": "seriesToRows"
+          }
         }
       ]
     },

@@ -10,7 +10,7 @@ def build():
 
     out.append(p.row("Outcomes / Résultats", 0))
     out.append(p.stat("Backup success rate / Taux succès BACKUP",
-                      'sum(nbu_status_count{action="BACKUP",status="0"}) '
+                      '(sum(nbu_status_count{action="BACKUP",status="0"}) or 0 * sum(nbu_status_count{action="BACKUP"})) '
                       '/ clamp_min(sum(nbu_status_count{action="BACKUP"}), 1) * 100',
                       0, 1, 6, 8, unit="percent", color_mode="background",
                       thresholds=[{"color": "red", "value": None}, {"color": "yellow", "value": 90}, {"color": "green", "value": 99}]))

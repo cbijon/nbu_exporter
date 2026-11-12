@@ -1,0 +1,166 @@
+{
+ "data": [
+  {
+   "attributes": {
+    "absolutePath": "sample",
+    "accelerator": true,
+    "capabilities": [
+     "sample"
+    ],
+    "density": "DQSCSI",
+    "diskStagingSchedule": {
+     "acceleratorForcedRescan": true,
+     "alternateReaderServer": "sample",
+     "backupCopies": {
+      "copies": [
+       {
+        "failStrategy": "CONTINUE",
+        "mediaOwner": "sample",
+        "retentionLevel": 1,
+        "retentionPeriod": {
+         "unit": "SECONDS",
+         "value": 1
+        },
+        "storage": "sample",
+        "volumePool": "sample"
+       }
+      ],
+      "priority": 1
+     },
+     "excludeDates": {
+      "lastDayOfMonth": true,
+      "recurringDaysOfMonth": [
+       1
+      ],
+      "recurringDaysOfWeek": [
+       "sample"
+      ],
+      "specificDates": [
+       "sample"
+      ]
+     },
+     "finalDestinationMediaOwner": "sample",
+     "finalDestinationStorageUnit": "sample",
+     "finalDestinationVolumePool": "sample",
+     "frequencySeconds": 1,
+     "includeDates": {
+      "lastDayOfMonth": true,
+      "recurringDaysOfMonth": [
+       1
+      ],
+      "recurringDaysOfWeek": [
+       "sample"
+      ],
+      "specificDates": [
+       "sample"
+      ]
+     },
+     "relocationJobPriority": 1,
+     "retriesAllowedAfterRunDay": true,
+     "scheduleName": "sample",
+     "scheduleType": "CALENDAR",
+     "startWindow": [
+      {
+       "dayOfWeek": 1,
+       "durationSeconds": 1,
+       "startSeconds": 1
+      }
+     ],
+     "useAlternateReadServer": true
+    },
+    "enableBlockSharing": true,
+    "fileSystemExport": true,
+    "freeCapacityBytes": 1,
+    "independent": true,
+    "instantAccessEnabled": true,
+    "isCloudSTU": true,
+    "maxConcurrentDrives": 1,
+    "maxConcurrentJobs": 1,
+    "maxFragmentSizeMegabytes": 1,
+    "mediaServerDetails": [
+     {
+      "name": "sample",
+      "netbackupVersion": "sample",
+      "operatingSystem": "sample"
+     }
+    ],
+    "mirror": true,
+    "multiplexing": 1,
+    "name": "sample",
+    "ndmpHost": "sample",
+    "okOnRoot": true,
+    "onDemandOnly": true,
+    "path": "sample",
+    "primary": true,
+    "replicationCapable": true,
+    "replicationSourceCapable": true,
+    "replicationTargetCapable": true,
+    "robotNumber": 1,
+    "robotType": "NA",
+    "scaleOutEnabled": true,
+    "snapshot": true,
+    "stageData": true,
+    "storageCategory": "ADVANCED_DISK",
+    "storageServerType": "sample",
+    "storageSubType": "sample",
+    "storageType": "sample",
+    "totalCapacityBytes": 1,
+    "transferThrottle": 1,
+    "useAnyAvailableMediaServer": true,
+    "useWorm": true,
+    "usedCapacityBytes": 1,
+    "wormCapable": true
+   },
+   "id": "sample",
+   "links": {
+    "self": {
+     "href": "sample"
+    }
+   },
+   "relationships": {
+    "diskPool": {
+     "data": {
+      "id": "sample",
+      "type": "diskPool"
+     },
+     "links": {
+      "related": {
+       "href": "sample"
+      }
+     }
+    }
+   },
+   "type": "storageUnit"
+  }
+ ],
+ "links": {
+  "first": {
+   "href": "sample"
+  },
+  "last": {
+   "href": "sample"
+  },
+  "next": {
+   "href": "sample"
+  },
+  "prev": {
+   "href": "sample"
+  },
+  "self": {
+   "href": "sample"
+  }
+ },
+ "meta": {
+  "pagination": {
+   "count": 1,
+   "first": 1,
+   "last": 1,
+   "limit": 1,
+   "next": 1,
+   "offset": 1,
+   "page": 1,
+   "pages": 1,
+   "prev": 1
+  }
+ }
+}

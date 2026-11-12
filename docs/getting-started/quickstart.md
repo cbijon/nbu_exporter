@@ -10,7 +10,18 @@ make cli
 
 ## 2. Configure
 
-Create `config.yaml` with your NetBackup server details. See [Configuration](configuration.md) for all options.
+The shipped `config.yaml` reads the NetBackup primary server and API key from the environment
+(`nbuservers:` list, API version auto-detected). Put them in a gitignored `.env`, which the binary
+loads from the working directory:
+
+```bash
+cp .env.example .env
+# edit .env — set NBU1_HOSTNAME=master.my.domain and NBU1_APIKEY=...
+```
+
+Keep TLS verification on and trust the NetBackup CA (`SSL_CERT_FILE` / `SSL_CERT_DIR`, see
+[Configuration](configuration.md#tls)); `NBU1_SKIP_CERTIFICATE=true` is a last resort. See
+[Configuration](configuration.md) for all options.
 
 ## 3. Run
 
@@ -20,8 +31,16 @@ Create `config.yaml` with your NetBackup server details. See [Configuration](con
 
 The exporter exposes:
 
-- **Metrics**: `http://localhost:9440/metrics`
-- **Health**: `http://localhost:9440/health`
+- **Metrics**: `http://localhost:9440/metrics` (latest snapshot; NetBackup is polled in the background every `collectionInterval`)
+- **Health**: `http://localhost:9440/health` (always 200, JSON status)
+- **Probes**: `http://localhost:9440/livez`, `http://localhost:9440/readyz` (static 200)
+
+Check that every site is up and which API version it uses:
+
+```bash
+curl -s localhost:9440/health
+curl -s localhost:9440/metrics | grep -E '^nbu_(up|api_version)'   # nbu_up 1 per site; version="14.0" on NBU 11.1
+```
 
 ## 4. Add to Prometheus
 
@@ -55,5 +74,5 @@ skipped entirely:
 
 ```bash
 ./bin/nbu_exporter --config config.yaml --trace
-curl -s localhost:9440/metrics > /dev/null   # trigger a scrape, then read the log
+# bodies are logged on each background collection cycle (the first one runs at startup)
 ```

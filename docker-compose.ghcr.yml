@@ -1,6 +1,6 @@
 services:
   nbu_exporter: # nosemgrep
-    image: ghcr.io/fjacquet/nbu_exporter:latest
+    image: ghcr.io/${NBU_IMAGE_OWNER:-fjacquet}/nbu_exporter:${NBU_TAG:-latest}
     container_name: nbu_exporter
     security_opt:
       - no-new-privileges:true
@@ -8,9 +8,11 @@ services:
       - "${NBU_EXPORTER_PORT:-9440}:9440"
     volumes:
       - ./config.yaml:/etc/nbu_exporter/config.yaml:ro
+      # NetBackup CA (keep TLS verification on) — see docs/deploy-stack.md §10:
+      # - ./nbu-ca:/etc/nbu_exporter/ca:ro
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9440/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:9440/livez"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -18,6 +20,13 @@ services:
     environment:
       - NBU1_HOSTNAME=${NBU1_HOSTNAME:-master.my.domain}
       - NBU1_APIKEY=${NBU1_APIKEY:-}
+      - NBU1_SKIP_CERTIFICATE=${NBU1_SKIP_CERTIFICATE:-false}
+      # Second master (multi-site): forwarded for the second nbuservers: entry.
+      - NBU2_HOSTNAME=${NBU2_HOSTNAME:-}
+      - NBU2_APIKEY=${NBU2_APIKEY:-}
+      - NBU2_SKIP_CERTIFICATE=${NBU2_SKIP_CERTIFICATE:-false}
+      # Trust the mounted NetBackup CA in addition to the system roots (§10):
+      # - SSL_CERT_DIR=/etc/ssl/certs:/etc/nbu_exporter/ca
     networks:
       - monitoring
 
@@ -34,6 +43,11 @@ services:
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./deploy/prometheus/nbu.rules.yml:/etc/prometheus/rules/nbu.rules.yml:ro
+      # prometheus.yml loads all four rule files; a missing mount silently drops
+      # those alerts (rule_files are globs), so keep this list in sync.
+      - ./deploy/prometheus/rules-perclient.yml:/etc/prometheus/rules/rules-perclient.yml:ro
+      - ./deploy/prometheus/rules-tape.yml:/etc/prometheus/rules/rules-tape.yml:ro
+      - ./deploy/prometheus/rules-multisite.yml:/etc/prometheus/rules/rules-multisite.yml:ro
       - prometheus-data:/prometheus
     ports:
       - "${PROMETHEUS_PORT:-9090}:9090"

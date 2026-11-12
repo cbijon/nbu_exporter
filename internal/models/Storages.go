@@ -34,7 +34,8 @@ type Storages struct {
 			TotalCapacityBytes         int64  `json:"totalCapacityBytes"`
 			UsedCapacityBytes          int64  `json:"usedCapacityBytes"`
 			MaxFragmentSizeMegabytes   int    `json:"maxFragmentSizeMegabytes"`
-			MaxConcurrentJobs          int    `json:"maxConcurrentJobs"`
+			MaxConcurrentJobs          int    `json:"maxConcurrentJobs"`   // disk storage units
+			MaxConcurrentDrives        int    `json:"maxConcurrentDrives"` // tape storage units (instead of maxConcurrentJobs)
 			OnDemandOnly               bool   `json:"onDemandOnly"`
 			// NetBackup 10.5 API optional fields
 			StorageCategory          string `json:"storageCategory,omitempty"`

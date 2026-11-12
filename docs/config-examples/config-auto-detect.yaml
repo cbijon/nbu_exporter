@@ -1,53 +1,48 @@
 ---
-# Configuration Example: Automatic API Version Detection
+# Configuration Example: single primary server, automatic API version detection
 #
-# Use this configuration when:
-# - You want the exporter to automatically detect the NetBackup API version
-# - You're deploying across multiple NetBackup versions
-# - You want a single configuration that works with NetBackup 10.0, 10.5, and 11.x
-# - You're upgrading NetBackup and want the exporter to adapt automatically
-#
-# NetBackup Version: 10.0+ (any supported version)
-# API Version: Auto-detected (14.0 → 13.0 → 12.0 → 10.0)
-# Detection: Enabled (no apiVersion specified)
+# This is the recommended starting point. With no apiVersion set, the exporter
+# probes 14.0 -> 13.0 -> 12.0 -> 10.0 at startup and keeps the first version the
+# primary server accepts (HTTP 406 = not supported):
+#   14.0 = NetBackup 11.1 / 11.2 · 13.0 = 11.0 · 12.0 = 10.5 · 10.0 = 10.0-10.4
+# After a NetBackup upgrade, restart the exporter to pick up the newer API.
+# nbu_api_version{site,version} shows the version in use.
 
 server:
-    host: "localhost"
+    host: "0.0.0.0"          # must be 0.0.0.0 in a container; "localhost" only for a bare-metal binary scraped locally
     port: "9440"
     uri: "/metrics"
-    scrapingInterval: "1h"   # Job lookback window per collection
-    collectionInterval: "5m" # How often the loop polls every site (default 5m)
-    logName: "log/nbu-exporter.log"
+    scrapingInterval: "1h"   # job look-back window
+    collectionInterval: "5m" # background poll; /metrics serves the latest snapshot, never calls NBU on scrape
+    logName: "stdout"        # or a file path whose parent directory exists
 
 nbuservers:
-    - site: "primary"
+    - site: "primary"        # required, unique; becomes the `site` label
       scheme: "https"
       uri: "/netbackup"
-      host: "nbu-master.my.domain"
+      host: "${NBU1_HOSTNAME}"   # e.g. master.my.domain
       port: "1556"
-      # apiVersion: NOT SPECIFIED — auto-detects highest supported version
-      # Detection order: 14.0 (NBU 11.2) → 13.0 (NBU 11.0) → 12.0 (NBU 10.5) → 10.0 (NBU 10.0-10.4)
-      apiKey: "your-api-key-here"
-      insecureSkipVerify: false
+      apiKey: "${NBU1_APIKEY}"   # generate in the NetBackup web UI
+      insecureSkipVerify: "${NBU1_SKIP_CERTIFICATE:-false}"
+      # apiVersion: "14.0"   # optional pin; omit to auto-detect (recommended)
 
-# Optional: opt-in metric collectors (all default to disabled).
-# alerts/malware/catalog/slo require NetBackup 11.2 (API version 14.0).
+# Optional collectors (all disabled by default).
 collectors:
-    alerts:  { enabled: false }
-    malware: { enabled: false }
-    catalog: { enabled: false }
-    slo:     { enabled: false }
-    # Tape drives, media pools, partially-full volume pools and disk-pool volumes.
-    # Drive/media metrics work on NBU 10.0+; volume-pool and disk-pool need 10.5+.
-    tape:    { enabled: false }
+    alerts:  { enabled: false }   # API 14.0 (NetBackup 11.1+)
+    malware: { enabled: false }   # API 14.0
+    catalog: { enabled: false }   # API 14.0
+    slo:     { enabled: false }   # API 14.0
+    tape:    { enabled: false }   # drives, tape media, volume pools, disk pools (API 12.0+ / NetBackup 10.5+)
     # Per-client backup compliance + lifecycle (BACKUP/DUPLICATION/IMPORT).
-    # An empty allowlist emits nothing.
+    # Exact client names; an EMPTY allowlist emits NO per-client series.
     perClient:
         enabled: false
         allowlist: []
 
 # Notes:
-# - For contiguous job coverage, keep scrapingInterval >= collectionInterval.
-# - Detection adds ~1 s per version attempt to startup time.
-#   For faster startup, pin apiVersion explicitly.
-# - Keep insecureSkipVerify: false in production.
+# - ${VAR} / ${VAR:-default} work in host, apiKey and insecureSkipVerify. A .env file
+#   in the working directory or next to this file is loaded too; real env wins.
+# - Keep scrapingInterval >= collectionInterval for contiguous job coverage.
+# - Keep TLS verification on and trust the NetBackup CA (SSL_CERT_DIR / SSL_CERT_FILE,
+#   see docs/deploy-stack.md §10). insecureSkipVerify: true is a last resort.
+# - Config reload (SIGHUP / file change) only validates; restart to apply changes.

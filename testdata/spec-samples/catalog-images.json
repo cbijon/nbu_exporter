@@ -1,0 +1,153 @@
+{
+ "data": [
+  {
+   "attributes": {
+    "anomalyScore": 1.5,
+    "anomalySeverity": "UNDEFINED",
+    "anomalyStatus": "UNDEFINED",
+    "appType": "NONE",
+    "backupCopyType": "DEFAULT",
+    "backupStatus": 1,
+    "backupTime": "2026-11-12T10:00:00.000Z",
+    "blockIncrementalFullTime": "2026-11-12T10:00:00.000Z",
+    "clientCharset": 1,
+    "clientName": "sample",
+    "compression": true,
+    "contentFile": "sample",
+    "contentFileCompressed": "UNKNOWN",
+    "contentFileSize": "sample",
+    "creator": "sample",
+    "dataClassification": "sample",
+    "drMediaList": [
+     "sample"
+    ],
+    "elapsedTimeSeconds": 1,
+    "encryption": "NONE",
+    "expiration": "2026-11-12T10:00:00.000Z",
+    "extendedSecurityInfo": true,
+    "fileHashSearchResult": "NO_FILE_HASH_FOUND",
+    "fileRestoreRaw": false,
+    "fileScanResult": "UNDEFINED",
+    "fileSystemOnly": true,
+    "fragments": [
+     {
+      "blockSize": 1,
+      "checkpoint": 1,
+      "copyDate": "2026-11-12T10:00:00.000Z",
+      "copyDteMode": true,
+      "copyNumber": 1,
+      "copyType": "CLOUD_SNAPSHOT",
+      "dataFormat": "TAR",
+      "density": 1,
+      "destinationLocation": "sample",
+      "deviceWrittenOn": 1,
+      "expiration": "2026-11-12T10:00:00.000Z",
+      "fileNumber": 1,
+      "firstBlock": 1,
+      "fragmentFlags": 1,
+      "fragmentNumber": 1,
+      "heldForDependentCopy": true,
+      "hierarchicalDteMode": true,
+      "host": "sample",
+      "kbytes64": 1,
+      "keyTag": "sample",
+      "lastBlock": 1,
+      "mediaDate": "2026-11-12T10:00:00.000Z",
+      "mediaDesc": "sample",
+      "mediaId": "sample",
+      "mediaSequenceNumber": 1,
+      "mediaSubtype": 1,
+      "mediaType": 1,
+      "multiplex": 1,
+      "offset": 1,
+      "remainder": 1,
+      "resumeNumber": 1,
+      "retentionLevel": 1,
+      "slpTryToKeepDate": "2026-11-12T10:00:00.000Z",
+      "stlTag": "sample",
+      "wormFlags": 1,
+      "wormUnlockTime": "2026-11-12T10:00:00.000Z"
+     }
+    ],
+    "imageDteMode": true,
+    "imageDumpLevel": 1,
+    "imageType": "NORMAL",
+    "intelligentCatalogArchiving": false,
+    "isOptimized": true,
+    "jobId": 1,
+    "kbytes": 1,
+    "kbytesDataTransferred": 1,
+    "keyword": "sample",
+    "malwareScanResult": "NOT_SCANNED",
+    "malwareStatus": "NOT_SCANNED",
+    "mpx": true,
+    "numCopies": 1,
+    "numFiles": 1,
+    "numberFragments": 1,
+    "objectDescriptor": "sample",
+    "onHold": false,
+    "originMasterServer": "sample",
+    "pfiType": 1,
+    "policyName": "sample",
+    "policyType": "sample",
+    "primaryCopy": 1,
+    "providerGeneratedId": "sample",
+    "proxyClient": "sample",
+    "remoteExpirationDate": "2026-11-12T10:00:00.000Z",
+    "retentionLevel": 1,
+    "scheduleName": "sample",
+    "scheduleType": "FULL",
+    "slpCompleted": 1,
+    "slpName": "sample",
+    "slpVersion": 1,
+    "snapshotTime": "2026-11-12T10:00:00.000Z",
+    "streamAggregatedFiles": 1,
+    "streamAggregatedKbytes": 1,
+    "streamNumber": 1,
+    "tirExpirationDate": "2026-11-12T10:00:00.000Z",
+    "tirInfo": false,
+    "version": 1,
+    "vmType": "NONE"
+   },
+   "id": "sample",
+   "links": {
+    "self": {
+     "href": "sample"
+    }
+   },
+   "relationships": {
+    "mediaServers": {
+     "data": [
+      {
+       "id": "sample",
+       "type": "mediaServer"
+      }
+     ]
+    },
+    "vmwareImage": {
+     "data": {
+      "id": "sample",
+      "type": "sample"
+     },
+     "links": {
+      "related": {
+       "href": "sample"
+      }
+     }
+    }
+   },
+   "type": "sample"
+  }
+ ],
+ "meta": {
+  "pagination": {
+   "count": 1,
+   "first": 1,
+   "last": 1,
+   "limit": 1,
+   "next": 1,
+   "offset": 1,
+   "prev": 1
+  }
+ }
+}

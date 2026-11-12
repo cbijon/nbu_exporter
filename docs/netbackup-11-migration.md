@@ -1,722 +1,275 @@
-# NetBackup 11.0 API Migration Guide
+# Upgrading NetBackup to 11.x
 
 ## Overview
 
-This guide provides step-by-step instructions for upgrading the NBU Exporter to support NetBackup 11.0 (API version 13.0) while maintaining backward compatibility with NetBackup 10.5 (API 12.0) and NetBackup 10.0-10.4 (API 10.0).
+This guide covers what to do on the exporter side when a NetBackup primary (master)
+server is upgraded to 11.0, 11.1 or 11.2. With the recommended configuration (no
+`apiVersion` pin) nothing has to change: the exporter picks up the new API version on
+its next start.
 
-## What's New
+| NetBackup version | API version | Notes |
+|-------------------|-------------|-------|
+| 11.1 / 11.2       | 14.0        | Enables the alerts / malware / catalog / SLO collectors |
+| 11.0              | 13.0        | |
+| 10.5              | 12.0        | Tape collector requires 12.0+ |
+| 10.0 – 10.4       | 10.0        | |
 
-### Multi-Version API Support
+### Automatic version detection
 
-The exporter now supports three NetBackup API versions:
+When `apiVersion` is not set, the exporter probes each site at startup in this order and
+keeps the first version the master accepts (an unsupported version answers HTTP 406):
 
-| NetBackup Version | API Version | Support Status |
-|-------------------|-------------|----------------|
-| 11.0+             | 13.0        | ✅ Fully Supported |
-| 10.5              | 12.0        | ✅ Fully Supported |
-| 10.0 - 10.4       | 10.0        | ✅ Fully Supported |
+1. 14.0 (NetBackup 11.1 / 11.2)
+2. 13.0 (NetBackup 11.0)
+3. 12.0 (NetBackup 10.5)
+4. 10.0 (NetBackup 10.0 – 10.4)
 
-### Automatic Version Detection
+Detection runs **per site** and **only at startup**. After a NetBackup upgrade, restart
+the exporter so it detects the new version.
 
-The exporter can automatically detect the highest supported API version available on your NetBackup server. This eliminates the need for manual version configuration in most scenarios.
+## Recommended configuration
 
-**Detection Process:**
-1. Attempts API version 13.0 (NetBackup 11.0+)
-2. Falls back to API version 12.0 (NetBackup 10.5)
-3. Falls back to API version 10.0 (NetBackup 10.0-10.4)
-4. Uses the first version that responds successfully
-
-### Key Benefits
-
-- **Single Binary**: Deploy the same exporter across all NetBackup versions
-- **Zero Configuration**: Automatic detection works out of the box
-- **Backward Compatible**: Existing configurations continue to work
-- **Future Proof**: Ready for NetBackup upgrades without exporter changes
-
-## Migration Scenarios
-
-### Scenario 1: New Deployment (NetBackup 11.0)
-
-**Recommended for:** Fresh installations on NetBackup 11.0 environments.
-
-**Steps:**
-
-1. **Download the latest exporter binary**
-   ```bash
-   # Clone or download the latest release
-   git clone https://github.com/fjacquet/nbu_exporter.git
-   cd nbu_exporter
-   make cli
-   ```
-
-2. **Create configuration file** (config.yaml)
-   ```yaml
-   server:
-       host: "localhost"
-       port: "9440"
-       uri: "/metrics"
-       scrapingInterval: "1h"
-       logName: "log/nbu-exporter.log"
-
-   nbuserver:
-       scheme: "https"
-       uri: "/netbackup"
-       domain: "my.domain"
-       domainType: "NT"
-       host: "nbu-master.my.domain"
-       port: "1556"
-       # apiVersion not specified - will auto-detect 13.0
-       apiKey: "your-api-key-here"
-       contentType: "application/vnd.netbackup+json; version=13.0"
-       insecureSkipVerify: false
-   ```
-
-3. **Start the exporter**
-   ```bash
-   ./bin/nbu_exporter --config config.yaml
-   ```
-
-4. **Verify version detection**
-   ```
-   INFO[0000] Starting NBU Exporter
-   INFO[0001] Attempting API version detection
-   INFO[0002] Detected NetBackup API version: 13.0
-   INFO[0002] Successfully connected to NetBackup API
-   ```
-
-5. **Test metrics endpoint**
-   ```bash
-   curl http://localhost:9440/metrics | grep nbu_
-   ```
-
-**Expected Result:** Exporter automatically detects API version 13.0 and collects metrics successfully.
-
----
-
-### Scenario 2: Existing Deployment (NetBackup 10.5 → 11.0 Upgrade)
-
-**Recommended for:** Environments upgrading from NetBackup 10.5 to 11.0.
-
-**Before Upgrade:**
-- Exporter configured with `apiVersion: "12.0"`
-- NetBackup 10.5 running with API 12.0
-
-**After NetBackup Upgrade:**
-
-**Option A: Enable Automatic Detection (Recommended)**
-
-1. **Stop the exporter**
-   ```bash
-   # If running as systemd service
-   sudo systemctl stop nbu_exporter
-
-   # If running manually
-   pkill nbu_exporter
-   ```
-
-2. **Update configuration** - Remove explicit version
-   ```yaml
-   nbuserver:
-       # apiVersion: "12.0"  # Comment out or remove
-       host: "nbu-master.my.domain"
-       # ... other settings remain unchanged
-   ```
-
-3. **Restart the exporter**
-   ```bash
-   sudo systemctl start nbu_exporter
-   # or
-   ./bin/nbu_exporter --config config.yaml
-   ```
-
-4. **Verify new version detected**
-   ```bash
-   # Check logs
-   tail -f log/nbu-exporter.log | grep "Detected NetBackup API version"
-   # Expected: Detected NetBackup API version: 13.0
-   ```
-
-**Option B: Explicit Version Update**
-
-1. **Stop the exporter**
-
-2. **Update configuration** - Change version to 13.0
-   ```yaml
-   nbuserver:
-       apiVersion: "13.0"  # Updated from 12.0
-       host: "nbu-master.my.domain"
-       # ... other settings remain unchanged
-   ```
-
-3. **Restart the exporter**
-
-4. **Verify metrics collection**
-   ```bash
-   curl http://localhost:9440/metrics | grep nbu_api_version
-   # Expected: nbu_api_version{version="13.0"} 1
-   ```
-
-**Option C: No Changes (Continue with API 12.0)**
-
-NetBackup 11.0 maintains backward compatibility with API 12.0. You can continue using your existing configuration without changes:
+Use the `nbuservers:` list (one entry per master) and leave `apiVersion` unset:
 
 ```yaml
-nbuserver:
-    apiVersion: "12.0"  # Still works with NetBackup 11.0
-    # ... other settings
+server:
+  host: "0.0.0.0"          # "localhost" only for a bare-metal binary scraped locally
+  port: "9440"
+  uri: "/metrics"
+  scrapingInterval: "1h"   # job look-back window
+  collectionInterval: "5m" # background poll; /metrics serves the latest snapshot
+  logName: "stdout"
+
+nbuservers:
+  - site: "primary"        # required, unique; becomes the `site` label
+    scheme: "https"
+    uri: "/netbackup"
+    host: "${NBU1_HOSTNAME}"
+    port: "1556"
+    apiKey: "${NBU1_APIKEY}"
+    insecureSkipVerify: "${NBU1_SKIP_CERTIFICATE:-false}"
+    # apiVersion: "14.0"   # optional pin; omit to auto-detect
 ```
 
-**Note:** This option works but doesn't take advantage of new API 13.0 features.
+`host`, `apiKey` and `insecureSkipVerify` accept `${VAR}` / `${VAR:-default}`; values can
+come from a `.env` file next to `config.yaml` or in the working directory (real
+environment variables win).
 
----
+Keep certificate verification on and trust the NetBackup CA instead of setting
+`insecureSkipVerify: true` — see [deploy-stack.md §10](deploy-stack.md#10-tls-trust-the-netbackup-ca-keep-certificate-verification-on).
 
-### Scenario 3: Mixed Environment (Multiple NetBackup Versions)
+### Migrating an older configuration
 
-**Recommended for:** Organizations with multiple NetBackup servers running different versions.
-
-**Challenge:** Different NetBackup servers require different API versions.
-
-**Solution:** Use automatic version detection for each exporter instance.
-
-**Deployment:**
-
-1. **Deploy exporter per NetBackup server**
-   ```bash
-   # Server 1: NetBackup 11.0
-   ./bin/nbu_exporter --config config-nbu11.yaml
-
-   # Server 2: NetBackup 10.5
-   ./bin/nbu_exporter --config config-nbu10.yaml
-
-   # Server 3: NetBackup 10.0
-   ./bin/nbu_exporter --config config-nbu10-legacy.yaml
-   ```
-
-2. **Configuration for each server** (no apiVersion specified)
-   ```yaml
-   # config-nbu11.yaml
-   nbuserver:
-       host: "nbu11-master.my.domain"
-       # apiVersion omitted - will detect 13.0
-
-   # config-nbu10.yaml
-   nbuserver:
-       host: "nbu10-master.my.domain"
-       # apiVersion omitted - will detect 12.0
-
-   # config-nbu10-legacy.yaml
-   nbuserver:
-       host: "nbu10-legacy.my.domain"
-       # apiVersion omitted - will detect 10.0
-   ```
-
-3. **Each exporter automatically detects the correct version**
-
-**Alternative:** Use explicit versions if you prefer predictable behavior:
+Older guides used a single `nbuserver:` block with an `apiVersion` pin. That block is still
+accepted (it becomes a one-entry list with site `default` and logs a deprecation
+warning), but convert it when you touch the file:
 
 ```yaml
-# config-nbu11.yaml
+# Before
 nbuserver:
-    apiVersion: "13.0"
-    host: "nbu11-master.my.domain"
+  host: "master.my.domain"
+  apiVersion: "12.0"        # pin — blocks the move to 13.0/14.0
+  apiKey: "..."
+  ...
 
-# config-nbu10.yaml
-nbuserver:
-    apiVersion: "12.0"
-    host: "nbu10-master.my.domain"
+# After
+nbuservers:
+  - site: "primary"
+    host: "master.my.domain"
+    apiKey: "${NBU1_APIKEY}"
+    ...                     # no apiVersion
 ```
 
----
+Notes:
 
-### Scenario 4: Docker Deployment
+- **Remove the `apiVersion` pin.** A pin to 12.0 or 13.0 keeps working on 11.x (the
+  older API versions remain available), but the exporter then never uses 14.0 and the
+  14.0-only collectors do not work.
+- `domain`, `domainType` and `contentType` are not needed: the `Accept` header is built
+  from the API version in use.
+- The `site` label changes from the master's hostname (what a legacy `nbuserver:` block
+  uses as its site) to the name you choose. Dashboards filter on `$site`, but recording
+  rules, alerts or saved queries that hard-code the old `site` value must be updated.
 
-**Recommended for:** Containerized deployments.
+## Upgrade procedure
 
-**Steps:**
+1. **Before the NetBackup upgrade**, note the current version per site:
 
-1. **Build updated Docker image**
    ```bash
-   make docker
-   # or
-   docker build -t nbu_exporter:latest .
+   curl -s localhost:9440/metrics | grep '^nbu_api_version'
    ```
 
-2. **Update docker-compose.yml** (if using)
-   ```yaml
-   version: '3.8'
-   services:
-     nbu_exporter:
-       image: nbu_exporter:latest
-       ports:
-         - "9440:9440"
-       volumes:
-         - ./config.yaml:/config.yaml:ro
-       command: ["--config", "/config.yaml"]
-       restart: unless-stopped
-   ```
+2. If `config.yaml` still pins `apiVersion` or uses `nbuserver:`, convert it as above.
+3. Upgrade NetBackup on the master.
+4. **Restart the exporter** (config changes and version detection only take effect on
+   restart; a reload via SIGHUP or a file change only re-validates the file):
 
-3. **Configuration** (config.yaml)
-   ```yaml
-   nbuserver:
-       # apiVersion omitted for auto-detection
-       host: "nbu-master.my.domain"
-       # ... other settings
-   ```
-
-4. **Deploy container**
    ```bash
-   docker-compose up -d
+   docker compose restart nbu_exporter      # compose stack
+   sudo systemctl restart nbu_exporter      # systemd
+   kubectl rollout restart deployment/<name>   # Helm chart
    ```
 
-5. **Verify logs**
-   ```bash
-   docker-compose logs -f nbu_exporter | grep "Detected NetBackup API version"
-   ```
+5. Verify (next section).
 
----
-
-### Scenario 5: Kubernetes Deployment
-
-**Recommended for:** Kubernetes/OpenShift environments.
-
-**Steps:**
-
-1. **Update ConfigMap** (remove explicit version)
-   ```yaml
-   apiVersion: v1
-   kind: ConfigMap
-   metadata:
-     name: nbu-exporter-config
-   data:
-     config.yaml: |
-       server:
-         host: "0.0.0.0"
-         port: "9440"
-         uri: "/metrics"
-         scrapingInterval: "1h"
-         logName: "/var/log/nbu-exporter.log"
-       nbuserver:
-         scheme: "https"
-         uri: "/netbackup"
-         domain: "my.domain"
-         domainType: "NT"
-         host: "nbu-master.my.domain"
-         port: "1556"
-         # apiVersion omitted for auto-detection
-         apiKey: "${NBU_API_KEY}"
-         contentType: "application/vnd.netbackup+json; version=13.0"
-         insecureSkipVerify: false
-   ```
-
-2. **Update Deployment** (use latest image)
-   ```yaml
-   apiVersion: apps/v1
-   kind: Deployment
-   metadata:
-     name: nbu-exporter
-   spec:
-     replicas: 1
-     selector:
-       matchLabels:
-         app: nbu-exporter
-     template:
-       metadata:
-         labels:
-           app: nbu-exporter
-       spec:
-         containers:
-         - name: nbu-exporter
-           image: nbu_exporter:latest
-           ports:
-           - containerPort: 9440
-           volumeMounts:
-           - name: config
-             mountPath: /config.yaml
-             subPath: config.yaml
-           env:
-           - name: NBU_API_KEY
-             valueFrom:
-               secretKeyRef:
-                 name: nbu-credentials
-                 key: api-key
-         volumes:
-         - name: config
-           configMap:
-             name: nbu-exporter-config
-   ```
-
-3. **Apply changes**
-   ```bash
-   kubectl apply -f configmap.yaml
-   kubectl apply -f deployment.yaml
-   kubectl rollout restart deployment/nbu-exporter
-   ```
-
-4. **Verify deployment**
-   ```bash
-   kubectl logs -f deployment/nbu-exporter | grep "Detected NetBackup API version"
-   ```
-
----
-
-## Rollback Procedures
-
-### Rollback Scenario 1: Issues After Enabling Auto-Detection
-
-**Problem:** Auto-detection is not working as expected.
-
-**Solution:** Revert to explicit version configuration.
-
-1. **Stop the exporter**
-   ```bash
-   sudo systemctl stop nbu_exporter
-   ```
-
-2. **Restore explicit version** in config.yaml
-   ```yaml
-   nbuserver:
-       apiVersion: "12.0"  # Restore previous version
-       # ... other settings
-   ```
-
-3. **Restart the exporter**
-   ```bash
-   sudo systemctl start nbu_exporter
-   ```
-
-4. **Verify metrics collection**
-   ```bash
-   curl http://localhost:9440/metrics | grep nbu_
-   ```
-
----
-
-### Rollback Scenario 2: Issues After NetBackup 11.0 Upgrade
-
-**Problem:** Exporter not working correctly after NetBackup upgrade.
-
-**Solution:** Temporarily revert to API 12.0 (backward compatible).
-
-1. **Stop the exporter**
-
-2. **Configure explicit API 12.0**
-   ```yaml
-   nbuserver:
-       apiVersion: "12.0"  # Use backward-compatible version
-       # ... other settings
-   ```
-
-3. **Restart and verify**
-
-**Note:** NetBackup 11.0 supports API 12.0 for backward compatibility.
-
----
-
-### Rollback Scenario 3: Complete Rollback to Previous Exporter Version
-
-**Problem:** New exporter version causing issues.
-
-**Solution:** Restore previous exporter binary and configuration.
-
-1. **Stop current exporter**
-   ```bash
-   sudo systemctl stop nbu_exporter
-   ```
-
-2. **Restore previous binary**
-   ```bash
-   cp bin/nbu_exporter.backup bin/nbu_exporter
-   # or download previous release
-   ```
-
-3. **Restore previous configuration**
-   ```bash
-   cp config.yaml.backup config.yaml
-   ```
-
-4. **Restart exporter**
-   ```bash
-   sudo systemctl start nbu_exporter
-   ```
-
-5. **Verify functionality**
-   ```bash
-   curl http://localhost:9440/metrics | grep nbu_
-   ```
-
----
-
-## Troubleshooting Common Migration Issues
-
-### Issue 1: Version Detection Fails
-
-**Symptoms:**
-```
-ERROR: Failed to detect compatible NetBackup API version.
-Attempted versions: 13.0, 12.0, 10.0
-```
-
-**Diagnosis:**
-
-1. **Check NetBackup version**
-   ```bash
-   # On NetBackup master server
-   bpgetconfig -g | grep VERSION
-   ```
-
-2. **Test API connectivity**
-   ```bash
-   curl -k -H "Authorization: YOUR_API_KEY" \
-        -H "Accept: application/vnd.netbackup+json;version=13.0" \
-        https://nbu-master:1556/netbackup/admin/jobs?page[limit]=1
-   ```
-
-**Solutions:**
-
-- **If NetBackup < 10.0:** Upgrade NetBackup or use an older exporter version
-- **If network issue:** Check firewall rules, DNS resolution, and network connectivity
-- **If authentication issue:** Verify API key is valid and has correct permissions
-- **Workaround:** Configure explicit version based on your NetBackup version
-
----
-
-### Issue 2: Slow Startup with Auto-Detection
-
-**Symptoms:**
-- Exporter takes 3-5 seconds to start
-- Multiple version attempts in logs
-
-**Diagnosis:**
-```
-DEBUG[0001] Trying API version 13.0
-WARN[0002] API version 13.0 not supported (HTTP 406), trying next version
-DEBUG[0002] Trying API version 12.0
-INFO[0003] Successfully detected API version: 12.0
-```
-
-**Solution:** Configure explicit version to skip detection
-
-```yaml
-nbuserver:
-    apiVersion: "12.0"  # Skip detection, connect immediately
-    # ... other settings
-```
-
-**Result:** Startup time reduced to < 1 second.
-
----
-
-### Issue 3: Metrics Missing After Upgrade
-
-**Symptoms:**
-- Exporter starts successfully
-- Some metrics are missing or zero
-
-**Diagnosis:**
-
-1. **Check API version metric**
-   ```bash
-   curl http://localhost:9440/metrics | grep nbu_api_version
-   ```
-
-2. **Verify NetBackup API responses**
-   ```bash
-   # Test jobs endpoint
-   curl -k -H "Authorization: YOUR_API_KEY" \
-        -H "Accept: application/vnd.netbackup+json;version=13.0" \
-        https://nbu-master:1556/netbackup/admin/jobs
-
-   # Test storage endpoint
-   curl -k -H "Authorization: YOUR_API_KEY" \
-        -H "Accept: application/vnd.netbackup+json;version=13.0" \
-        https://nbu-master:1556/netbackup/storage/storage-units
-   ```
-
-**Solutions:**
-
-- **If API returns empty data:** Check NetBackup has jobs/storage to report
-- **If API returns errors:** Verify API key permissions
-- **If specific metrics missing:** Check exporter logs for parsing errors
-
----
-
-### Issue 4: Authentication Errors After Migration
-
-**Symptoms:**
-```
-ERROR: failed to fetch storage data: HTTP 401 Unauthorized
-```
-
-**Diagnosis:**
-
-1. **Verify API key is still valid**
-   ```bash
-   # Test authentication
-   curl -k -H "Authorization: YOUR_API_KEY" \
-        https://nbu-master:1556/netbackup/admin/jobs?page[limit]=1
-   ```
-
-2. **Check API key permissions** in NetBackup UI
-
-**Solutions:**
-
-- **If key expired:** Generate new API key in NetBackup UI
-- **If permissions changed:** Update API key permissions
-- **If key format changed:** Verify key format in configuration
-
----
-
-## Validation Checklist
-
-After migration, verify the following:
-
-### ✅ Exporter Startup
-
-- [ ] Exporter starts without errors
-- [ ] Version detection completes successfully (if using auto-detection)
-- [ ] Correct API version is logged
-- [ ] No authentication errors in logs
-
-### ✅ Metrics Collection
-
-- [ ] Metrics endpoint responds: `curl http://localhost:9440/metrics`
-- [ ] Job metrics are present: `grep nbu_jobs_count`
-- [ ] Storage metrics are present: `grep nbu_storage_bytes`
-- [ ] API version metric is present: `grep nbu_api_version`
-
-### ✅ Prometheus Integration
-
-- [ ] Prometheus successfully scrapes the exporter
-- [ ] No scrape errors in Prometheus logs
-- [ ] Metrics appear in Prometheus UI
-- [ ] Existing alerts still work
-
-### ✅ Grafana Dashboards
-
-- [ ] Existing dashboards display data correctly
-- [ ] No broken panels or queries
-- [ ] Time series data is continuous (no gaps)
-- [ ] All visualizations render properly
-
-### ✅ Performance
-
-- [ ] Scrape duration is acceptable (< 30 seconds)
-- [ ] No timeout errors
-- [ ] CPU and memory usage is normal
-- [ ] No resource leaks over time
-
----
-
-## Best Practices
-
-### 1. Test in Non-Production First
-
-Always test the migration in a development or staging environment before production:
+## Verify after the upgrade
 
 ```bash
-# Test environment
-./bin/nbu_exporter --config config-test.yaml --debug
+# Exporter health (always 200, JSON status per site)
+curl -s localhost:9440/health
+
+# One nbu_up 1 per site, and the detected API version per site
+curl -s localhost:9440/metrics | grep -E '^nbu_(up|api_version)'
+# Expected on NetBackup 11.1 / 11.2:
+#   nbu_api_version{site="primary",version="14.0"} 1
+# On 11.0: version="13.0"
+
+# Detection result and any errors/warnings
+docker logs nbu_exporter 2>&1 | grep -A1 -E 'detected API version|"level": "(error|warning)"'
+
+# Prometheus still scrapes the exporter
+curl -s 'localhost:9090/api/v1/query?query=up{job="netbackup"}'
 ```
 
-### 2. Enable Debug Logging During Migration
+Then check Grafana:
 
-Use debug mode to troubleshoot issues:
+- The **Overview** dashboard shows every site as up.
+- **Jobs** and **Storage** panels have data for the upgraded site with no gap beyond the
+  restart.
+- With a 14.0 site and the new collectors enabled, the **Data Protection** dashboard
+  fills in.
 
-```bash
-./bin/nbu_exporter --config config.yaml --debug
-```
+If a pin is still configured, the log shows
+`Using explicitly configured API version: X (bypassing detection)` instead of a detected
+version.
 
-### 3. Monitor Logs During Migration
+## New collectors on API 14.0 (NetBackup 11.1+)
 
-Watch logs in real-time during the migration:
-
-```bash
-tail -f log/nbu-exporter.log
-```
-
-### 4. Backup Configuration Before Changes
-
-Always backup your configuration:
-
-```bash
-cp config.yaml config.yaml.backup
-```
-
-### 5. Use Explicit Versions for Production
-
-For production environments, consider using explicit versions for predictable behavior:
+API 14.0 adds endpoints used by four opt-in collectors (all disabled by default):
 
 ```yaml
-nbuserver:
-    apiVersion: "13.0"  # Explicit version for production
+collectors:
+  alerts:  { enabled: true }   # nbu_alerts_count
+  malware: { enabled: true }   # nbu_malware_* (scan results)
+  catalog: { enabled: true }   # nbu_catalog_images_count
+  slo:     { enabled: true }   # nbu_slo_count
 ```
 
-### 6. Document Your Configuration
+- Restart the exporter after enabling them.
+- The API key needs read access to those resources (alerts, malware, catalog, service
+  catalog / SLOs).
+- On a site still below 14.0 the endpoints are missing; the collector logs the failure
+  and is skipped for that cycle. Core job and storage metrics are not affected.
+- Metric details: [metrics.md](metrics.md). Dashboard: Data Protection
+  ([dashboards.md](dashboards.md)).
 
-Add comments to your configuration file:
+The tape collector (`collectors.tape`) and per-client collector (`collectors.perClient`)
+are independent of 11.x: tape needs API 12.0+ (NetBackup 10.5+); per-client emits
+nothing until its `allowlist` lists exact client names.
+
+## Multi-site with masters on different versions
+
+Each `nbuservers` entry is polled independently and detects its own API version, so a
+single exporter can monitor masters during a staggered upgrade:
 
 ```yaml
-nbuserver:
-    apiVersion: "13.0"  # NetBackup 11.0 - Updated 2025-01-15
-    host: "nbu-master.my.domain"
+nbuservers:
+  - site: "primary"          # already on 11.1  -> detects 14.0
+    scheme: "https"
+    uri: "/netbackup"
+    host: "master.my.domain"
+    port: "1556"
+    apiKey: "${NBU1_APIKEY}"
+  - site: "secondary"        # still on 10.5    -> detects 12.0
+    scheme: "https"
+    uri: "/netbackup"
+    host: "master2.my.domain"
+    port: "1556"
+    apiKey: "${NBU2_APIKEY}"
 ```
 
-### 7. Plan for Rollback
+- `nbu_api_version{site,version}` shows the version of each site.
+- A site that is down (for example during its upgrade) only sets its `nbu_up{site}` to
+  0; the other sites keep reporting.
+- 14.0 collectors run on every site; on sites below 14.0 they log and skip.
+- After upgrading the second master, restart the exporter so that site re-detects.
 
-Always have a rollback plan:
-- Keep previous exporter binary
-- Backup configuration files
-- Document rollback steps
-- Test rollback procedure
+See [deploy-stack.md](deploy-stack.md) for the multi-site Prometheus and Grafana setup.
 
----
+## Rollback
 
-## Support and Resources
+If the exporter misbehaves with the new API version, pin a lower version on the affected
+site and restart:
 
-### Documentation
+```yaml
+nbuservers:
+  - site: "primary"
+    host: "master.my.domain"
+    apiVersion: "13.0"     # temporary; NetBackup 11.x still accepts 13.0 / 12.0
+    ...
+```
 
-- [Home](index.md) - Main documentation
-- [API 10.5 Migration Guide](api-10.5-migration.md) - Previous migration guide
-- [Changelog](changelog.md) - Version history
+- The 14.0-only collectors do not work while the pin is in place.
+- Remove the pin once the issue is fixed.
+- Rolling back NetBackup itself needs no exporter change if no pin is set: restart the
+  exporter and it detects the lower version.
 
-### NetBackup API Documentation
+To roll back the exporter itself, redeploy the previous image tag
+(`NBU_TAG=<version> docker compose -f docker-compose.ghcr.yml up -d`) or binary, with the
+`config.yaml` backup taken before the change.
 
-- [NetBackup 11.0 API Documentation](https://sort.veritas.com/public/documents/nbu/11.0/)
-- [NetBackup 10.5 API Documentation](https://sort.veritas.com/public/documents/nbu/10.5/)
+## Troubleshooting
 
-### Getting Help
+### Version detection fails
 
-- **GitHub Issues:** https://github.com/fjacquet/nbu_exporter/issues
-- **Discussions:** https://github.com/fjacquet/nbu_exporter/discussions
+```
+automatic API version detection failed: failed to detect compatible NetBackup API version
+Attempted versions: [14.0 13.0 12.0 10.0]
+```
 
----
+Every version was rejected or the master could not be reached. Check, in order:
 
-## Appendix: API Version Comparison
+- Network / DNS / firewall from the exporter host to `host:1556`.
+- TLS: `x509: certificate signed by unknown authority` means the NetBackup CA is not
+  trusted ([deploy-stack.md §10](deploy-stack.md#10-tls-trust-the-netbackup-ca-keep-certificate-verification-on)).
+- Authentication: `Authentication failed (HTTP 401)` means the API key is invalid or
+  expired; generate a new one in the NetBackup web UI.
+- The NetBackup version itself (`bpgetconfig -g | grep VERSION` on the master).
 
-### API 13.0 (NetBackup 11.0) vs API 12.0 (NetBackup 10.5)
+Test the API manually (trusting the CA with `--cacert` rather than `-k`):
 
-**Jobs API:**
-- Same endpoint structure
-- Same core attributes
-- Potential new optional fields in 13.0
+```bash
+curl --cacert nbu-ca/<netbackup-ca>.pem \
+     -H "Authorization: $NBU1_APIKEY" \
+     -H "Accept: application/vnd.netbackup+json;version=14.0" \
+     "https://master.my.domain:1556/netbackup/admin/jobs?page[limit]=1"
+```
 
-**Storage API:**
-- Same endpoint structure
-- Same capacity fields
-- Consistent metric names
+HTTP 406 for `version=14.0` means the master is older than 11.1.
 
-**Authentication:**
-- Same API key mechanism
-- Same header format
-- No changes required
+### HTTP 406 with a pinned version
 
-**Backward Compatibility:**
-- NetBackup 11.0 supports API 12.0
-- NetBackup 11.0 supports API 10.0
-- Smooth upgrade path
+The configured `apiVersion` is higher than the master supports (for example a 14.0 pin
+on an 11.0 master). Remove the pin or lower it.
 
----
+### Still on the old version after the upgrade
 
-**Document Version:** 1.0  
-**Last Updated:** 2025-01-15  
-**Exporter Version:** Latest (with multi-version support)
+- The exporter was not restarted (detection runs only at startup), or
+- `apiVersion` is still pinned on that site (look for
+  `Using explicitly configured API version` in the logs).
+
+### Metrics missing after the upgrade
+
+- Check `nbu_up{site}` and the exporter logs for errors on that site.
+- For the 14.0 collectors: confirm `nbu_api_version` shows `14.0` for the site and the
+  API key permissions.
+- Run once with `--debug`, or `--trace` to log API response bodies (headers and the API
+  key are never logged).
+
+## Related docs
+
+- [Deploying the full monitoring stack](deploy-stack.md)
+- [Metrics reference](metrics.md)
+- [Dashboards](dashboards.md)
+- [API 10.5 migration (historical)](api-10.5-migration.md)
+- [Changelog](changelog.md)

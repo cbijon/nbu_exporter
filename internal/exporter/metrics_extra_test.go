@@ -79,8 +79,8 @@ func TestAggregateJob_PopulatesAllAggregates(t *testing.T) {
 	policyKey := JobPolicyKey{Action: "BACKUP", PolicyType: "STANDARD"}
 
 	assert.Equal(t, 150.0, agg.FilesCount[policyKey], "files summed across jobs")
-	assert.Equal(t, 4.0, agg.DedupSum[policyKey], "dedup ratios summed (2.5 + 1.5 + 0)")
-	assert.Equal(t, 3.0, agg.DedupCount[policyKey], "all three jobs counted for dedup mean")
+	assert.Equal(t, 4.0, agg.DedupSum[policyKey], "dedup ratios summed (2.5 + 1.5)")
+	assert.Equal(t, 2.0, agg.DedupCount[policyKey], "jobs without a dedup ratio do not dilute the mean")
 
 	assert.Equal(t, 2.0, agg.StateCount[JobStateKey{Action: "BACKUP", State: "DONE"}])
 	assert.Equal(t, 1.0, agg.StateCount[JobStateKey{Action: "BACKUP", State: jobStateQueued}])

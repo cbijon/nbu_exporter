@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -476,5 +478,42 @@ func TestAPIVersionDetectorContextCancellationNoConfigMutation(t *testing.T) {
 	if cfg.NbuServer.APIVersion != originalVersion {
 		t.Errorf("Config mutated on context cancellation: got %v, want %v",
 			cfg.NbuServer.APIVersion, originalVersion)
+	}
+}
+
+// An unreachable master (no HTTP answer at all) must stop detection after the first
+// version instead of repeating the same network failure for every older version,
+// which took minutes per site and held back the whole collection cycle.
+func TestDetectVersion_UnreachableMasterFailsFast(t *testing.T) {
+	var mu sync.Mutex
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		requests++
+		mu.Unlock()
+		hj, ok := w.(http.Hijacker)
+		if !ok {
+			t.Fatal("hijacking not supported")
+		}
+		conn, _, err := hj.Hijack()
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = conn.Close() // transport error: no HTTP response
+	}))
+	defer server.Close()
+
+	client, detector, _ := setupVersionDetectorTest(server.URL, "")
+	client.client.SetRetryCount(0)
+	detector.retryConfig = RetryConfig{MaxAttempts: 2, InitialDelay: time.Millisecond, MaxDelay: time.Millisecond, BackoffFactor: 1}
+
+	_, err := detector.DetectVersion(context.Background())
+	if err == nil || !strings.Contains(err.Error(), "unreachable") {
+		t.Fatalf("expected an unreachable error, got %v", err)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if requests != 2 {
+		t.Errorf("expected 2 probes (first version only), got %d", requests)
 	}
 }

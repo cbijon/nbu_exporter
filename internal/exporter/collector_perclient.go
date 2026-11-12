@@ -36,7 +36,12 @@ func (c *perClientCollector) Name() string { return "perclient" }
 // Collect queries each allowlisted client's most recent successful backup. An empty
 // allowlist is a natural no-op (no queries, no series) — see the package docs.
 func (c *perClientCollector) Collect(ctx context.Context, ch chan<- prometheus.Metric) error {
+	seen := make(map[string]struct{}, len(c.cfg.Collectors.PerClient.Allowlist))
 	for _, name := range c.cfg.Collectors.PerClient.Allowlist {
+		if _, dup := seen[name]; dup { // a repeated allowlist entry would emit a duplicate series
+			continue
+		}
+		seen[name] = struct{}{}
 		c.collectClient(ctx, ch, name)
 	}
 	return nil
